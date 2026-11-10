@@ -1,4 +1,4 @@
-package com.jsomi.broadcaster
+package com.jsomi.studioadmin
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
