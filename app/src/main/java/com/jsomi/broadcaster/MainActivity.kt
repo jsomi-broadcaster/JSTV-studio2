@@ -1,5 +1,7 @@
 package com.jsomi.studioadmin
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -13,91 +15,87 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.firebase.database.FirebaseDatabase
+import kotlin.random.Random
+
+data class PremiumCode(val code: String = "", val phone: String = "", val price: String = "200", val isUsed: Boolean = false, val isLocked: Boolean = false)
+data class ChatUser(val name: String = "", val msg: String = "", val isLocked: Boolean = false)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { AdminStudioApp() }
+        setContent { FullStudio() }
     }
 }
 
 @Composable
-fun AdminStudioApp() {
+fun FullStudio() {
+    val context = LocalContext.current
+    val db = FirebaseDatabase.getInstance().getReference("jstv")
+    val controlRef = db.child("control")
+    val codesRef = db.child("codes")
+
+    var tab by remember { mutableStateOf(0) }
     var isLive by remember { mutableStateOf(false) }
     var viewers by remember { mutableStateOf(124) }
     var streamTitle by remember { mutableStateOf("JSTV Live - Evening Show") }
+    var rtmpUrl by remember { mutableStateOf("rtmp://a.rtmp.youtube.com/live2") }
     var streamKey by remember { mutableStateOf("live_123456") }
+    var quality by remember { mutableStateOf("720p HD") }
+    var allowChat by remember { mutableStateOf(true) }
+    var slowMode by remember { mutableStateOf(false) }
+    var autoRecord by remember { mutableStateOf(true) }
+    var isPremium by remember { mutableStateOf(false) }
+    var premiumPrice by remember { mutableStateOf("200") }
+    var premiumViewers by remember { mutableStateOf(0) }
+    var adminWhatsApp by remember { mutableStateOf("254763052911") }
+
+    var chatMessages = remember { mutableStateListOf(ChatUser("John", "Hello JSTV!"), ChatUser("Mary", "Great show!"), ChatUser("Peter", "Love this!")) }
     var bannedUsers = remember { mutableStateListOf<String>() }
-    var chatMessages = remember { mutableStateListOf("John: Hello JSTV!", "Mary: Great show!", "Peter: Love this!") }
+    var lockedUsers = remember { mutableStateListOf<String>() }
+    var newAdminMsg by remember { mutableStateOf("") }
+    var codes = remember { mutableStateListOf<PremiumCode>() }
+    var newCodePhone by remember { mutableStateOf("") }
+    var newCodePrice by remember { mutableStateOf("200") }
+
+    fun syncControl() {
+        val map = mapOf(
+            "isLive" to isLive, "streamTitle" to streamTitle, "rtmpUrl" to rtmpUrl,
+            "streamKey" to streamKey, "quality" to quality, "isPremium" to isPremium,
+            "premiumPrice" to premiumPrice, "allowChat" to allowChat, "slowMode" to slowMode,
+            "autoRecord" to autoRecord, "bannedUsers" to bannedUsers.toList(),
+            "lockedUsers" to lockedUsers.toList(), "viewers" to viewers,
+            "premiumViewers" to premiumViewers, "adminWhatsApp" to adminWhatsApp
+        )
+        controlRef.setValue(map)
+    }
+
+    fun generateCode() {
+        val chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+        var code = "JSTV-"
+        repeat(4) { code += chars[Random.nextInt(chars.length)] }
+        val newCode = PremiumCode(code = code, phone = newCodePhone.ifBlank { "Any User" }, price = newCodePrice, isUsed = false, isLocked = false)
+        codes.add(newCode)
+        codesRef.child(code).setValue(newCode)
+        newCodePhone = ""
+        syncControl()
+    }
+
+    fun openWhatsApp(code: PremiumCode) {
+        val text = "Hello JSTV! I want Premium. My Code: ${code.code} Price: KES ${code.price}. Please unlock me."
+        val url = "https://wa.me/${adminWhatsApp}?text=${Uri.encode(text)}"
+        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+    }
+
+    fun shareCode(code: PremiumCode) {
+        val text = "🎬 JSTV PREMIUM ACCESS\nYour Code: ${code.code}\nPrice: KES ${code.price}\n1. Open JSTV Broadcaster App\n2. Enter this code to unlock Premium\n3. Or WhatsApp Admin: https://wa.me/$adminWhatsApp - 0763052911"
+        val intent = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, text) }
+        context.startActivity(Intent.createChooser(intent, "Share Premium Code"))
+    }
 
     MaterialTheme {
-        LazyColumn(modifier = Modifier.fillMaxSize().background(Color(0xFF0F0F0F)).padding(16.dp)) {
-            item {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                    Text("📺 JSTV", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold)
-                    Card(colors = CardDefaults.cardColors(containerColor = if (isLive) Color.Red else Color.Gray), shape = RoundedCornerShape(20.dp)) {
-                        Text(if (isLive) "● LIVE" else "○ OFFLINE", color = Color.White, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), fontWeight = FontWeight.Bold)
-                    }
-                }
-                Text("Admin Studio - Control Room", color = Color.Gray, fontSize = 14.sp)
-                Spacer(modifier = Modifier.height(16.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    StatCard("Viewers", "$viewers", Color(0xFF1E88E5))
-                    StatCard("Likes", "1.2K", Color(0xFFE91E63))
-                    StatCard("Duration", if (isLive) "12:45" else "00:00", Color(0xFF43A047))
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)), modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Stream Control", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedTextField(value = streamTitle, onValueChange = { streamTitle = it }, label = { Text("Stream Title", color = Color.Gray) }, modifier = Modifier.fillMaxWidth(), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White))
-                        Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedTextField(value = streamKey, onValueChange = { streamKey = it }, label = { Text("Stream Key", color = Color.Gray) }, modifier = Modifier.fillMaxWidth(), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White))
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Button(onClick = { isLive = true; viewers += 10 }, colors = ButtonDefaults.buttonColors(containerColor = Color.Red), modifier = Modifier.fillMaxWidth()) { Text("GO LIVE") }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Button(onClick = { isLive = false }, colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)) { Text("END") }
-                            Button(onClick = { viewers += 5 }) { Text("+ Viewers") }
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(if (isLive) "RTMP: rtmp://a.rtmp.youtube.com/live2" else "Press GO LIVE to start", color = Color.Gray, fontSize = 12.sp)
-                    }
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                Text("Live Chat - Moderation", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-            items(chatMessages) { msg ->
-                Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)), modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Text(msg, color = Color.White, fontSize = 14.sp)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(onClick = { chatMessages.remove(msg); bannedUsers.add(msg) }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB71C1C))) { Text("Ban User", fontSize = 12.sp) }
-                    }
-                }
-            }
-            item {
-                Spacer(modifier = Modifier.height(8.dp))
-                if (bannedUsers.isNotEmpty()) {
-                    Text("Banned: ${bannedUsers.size} users", color = Color.Red, fontSize = 12.sp)
-                }
-                Text("JSTV Studio v1.0 - Admin Only", color = Color.Gray, fontSize = 11.sp)
-            }
-        }
-    }
-}
-
-@Composable
-fun StatCard(title: String, value: String, color: Color) {
-    Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))) {
-        Column(modifier = Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(value, color = color, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-            Text(title, color = Color.Gray, fontSize = 12.sp)
-        }
-    }
-}
+        Column(modifier = Modifier.fillMaxSize().background(Color
