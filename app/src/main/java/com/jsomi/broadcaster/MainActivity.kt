@@ -72,7 +72,7 @@ fun FullStudio() {
         codes.add(newCode); codesRef.child(code).setValue(newCode); newCodePhone = ""; syncControl()
     }
     fun shareCode(code: PremiumCode) {
-        val text = "JSTV PREMIUM ACCESS\nCode: ${code.code}\nPrice: KES ${code.price}\nOpen JSTV Broadcaster App and enter code\nWhatsApp Admin: https://wa.me/$adminWhatsApp - 0763052911"
+        val text = "JSTV PREMIUM ACCESS\nCode: ${code.code}\nPrice: KES ${code.price}\nWhatsApp Admin: https://wa.me/$adminWhatsApp - 0763052911"
         val intent = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, text) }
         context.startActivity(Intent.createChooser(intent, "Share Premium Code"))
     }
@@ -87,7 +87,7 @@ fun FullStudio() {
                 Text("JSTV STUDIO", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 Card(colors = CardDefaults.cardColors(containerColor = if (isLive) Color.Red else Color.Gray), shape = RoundedCornerShape(20.dp)) { Text(if (isLive) "LIVE" else "OFFLINE", color = Color.White, modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp), fontWeight = FontWeight.Bold) }
             }
-            Text(if (isPremium) "PREMIUM KES $premiumPrice - LINKED" else "FREE STREAM - LINKED", color = if (isPremium) Color(0xFFFFC107) else Color.Green, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Text(if (isPremium) "PREMIUM KES $premiumPrice - STUDIO CONTROL" else "FREE STREAM - STUDIO CONTROL", color = if (isPremium) Color(0xFFFFC107) else Color.Green, fontSize = 12.sp, fontWeight = FontWeight.Bold)
             Text("Viewers: $viewers | Premium: $premiumViewers | Banned: ${bannedUsers.size} | Locked: ${lockedUsers.size} | Codes: ${codes.size}", color = Color.Gray, fontSize = 11.sp)
             Text("WhatsApp Admin: 0763052911", color = Color(0xFF25D366), fontSize = 11.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(10.dp))
@@ -100,10 +100,10 @@ fun FullStudio() {
                     item {
                         Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))) {
                             Column(modifier = Modifier.padding(14.dp)) {
-                                Text("Stream Control - LINKED", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                                Text("Studio Control", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                                 OutlinedTextField(value = streamTitle, onValueChange = { streamTitle = it }, label = { Text("Stream Title") }, modifier = Modifier.fillMaxWidth(), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White))
                                 Spacer(modifier = Modifier.height(8.dp))
-                                Button(onClick = { isLive = true; syncControl() }, colors = ButtonDefaults.buttonColors(containerColor = Color.Red), modifier = Modifier.fillMaxWidth()) { Text("GO LIVE - SEND TO BROADCASTER") }
+                                Button(onClick = { isLive = true; syncControl() }, colors = ButtonDefaults.buttonColors(containerColor = Color.Red), modifier = Modifier.fillMaxWidth()) { Text("GO LIVE") }
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Button(onClick = { isLive = false; syncControl() }, modifier = Modifier.fillMaxWidth()) { Text("END STREAM") }
                                 Spacer(modifier = Modifier.height(8.dp))
@@ -113,7 +113,7 @@ fun FullStudio() {
                     }
                 }
                 if (tab == 1) {
-                    item { Text("Live Chat - Moderation", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp); Row(verticalAlignment = Alignment.CenterVertically) { Text("Allow Chat", color = Color.White, modifier = Modifier.weight(1f)); Switch(checked = allowChat, onCheckedChange = { allowChat = it; syncControl() }) } }
+                    item { Text("Live Chat - Studio Moderation", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp); Row(verticalAlignment = Alignment.CenterVertically) { Text("Allow Chat", color = Color.White, modifier = Modifier.weight(1f)); Switch(checked = allowChat, onCheckedChange = { allowChat = it; syncControl() }) } }
                     items(chatMessages) { user ->
                         Card(colors = CardDefaults.cardColors(containerColor = if (lockedUsers.contains(user.name)) Color(0xFF4A0000) else Color(0xFF1E1E1E)), modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                             Column(modifier = Modifier.padding(12.dp)) {
@@ -144,7 +144,7 @@ fun FullStudio() {
                     item {
                         Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))) {
                             Column(modifier = Modifier.padding(14.dp)) {
-                                Text("Premium Control - LINKED", color = Color(0xFFFFC107), fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                                Text("Premium Control - Studio", color = Color(0xFFFFC107), fontWeight = FontWeight.Bold, fontSize = 20.sp)
                                 Row(verticalAlignment = Alignment.CenterVertically) { Text(if (isPremium) "Premium ON" else "Premium OFF", color = Color.White, modifier = Modifier.weight(1f)); Switch(checked = isPremium, onCheckedChange = { isPremium = it; syncControl() }) }
                                 OutlinedTextField(value = premiumPrice, onValueChange = { premiumPrice = it }, label = { Text("Price KES") }, modifier = Modifier.fillMaxWidth(), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White))
                                 Text("Premium Viewers: $premiumViewers", color = Color.White); Text("Revenue: KES ${premiumViewers * (premiumPrice.toIntOrNull() ?: 0)}", color = Color.Green, fontWeight = FontWeight.Bold)
@@ -158,8 +158,8 @@ fun FullStudio() {
                     item {
                         Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))) {
                             Column(modifier = Modifier.padding(14.dp)) {
-                                Text("WhatsApp Premium Codes", color = Color(0xFF25D366), fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                                Text("Generate -> Share via WhatsApp 0763052911 -> User enters code", color = Color.Gray, fontSize = 12.sp)
+                                Text("WhatsApp Premium Codes - Studio", color = Color(0xFF25D366), fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                                Text("Generate -> Share via WhatsApp 0763052911", color = Color.Gray, fontSize = 12.sp)
                                 OutlinedTextField(value = newCodePhone, onValueChange = { newCodePhone = it }, label = { Text("Phone / Name for code") }, modifier = Modifier.fillMaxWidth(), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White))
                                 OutlinedTextField(value = newCodePrice, onValueChange = { newCodePrice = it }, label = { Text("Price KES") }, modifier = Modifier.fillMaxWidth(), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White))
                                 Button(onClick = { generateCode() }, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)), modifier = Modifier.fillMaxWidth()) { Text("GENERATE NEW CODE") }
@@ -187,14 +187,14 @@ fun FullStudio() {
                     item {
                         Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))) {
                             Column(modifier = Modifier.padding(14.dp)) {
-                                Text("Settings - LINKED", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                                Text("Studio Settings", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                                 OutlinedTextField(value = rtmpUrl, onValueChange = { rtmpUrl = it }, label = { Text("RTMP URL") }, modifier = Modifier.fillMaxWidth(), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White))
                                 OutlinedTextField(value = streamKey, onValueChange = { streamKey = it }, label = { Text("Stream Key") }, modifier = Modifier.fillMaxWidth(), colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White))
                                 Text("Quality: $quality", color = Color.White, fontWeight = FontWeight.Bold)
                                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { listOf("480p", "720p HD", "1080p Full HD").forEach { q -> Button(onClick = { quality = q }) { Text(q, fontSize = 11.sp) } } }
                                 Row(verticalAlignment = Alignment.CenterVertically) { Text("Auto Record", color = Color.White, modifier = Modifier.weight(1f)); Switch(checked = autoRecord, onCheckedChange = { autoRecord = it }) }
                                 Row(verticalAlignment = Alignment.CenterVertically) { Text("Allow Chat", color = Color.White, modifier = Modifier.weight(1f)); Switch(checked = allowChat, onCheckedChange = { allowChat = it }) }
-                                Button(onClick = { syncControl() }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF43A047))) { Text("SAVE & SEND TO BROADCASTER") }
+                                Button(onClick = { syncControl() }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF43A047))) { Text("SAVE STUDIO SETTINGS") }
                             }
                         }
                     }
