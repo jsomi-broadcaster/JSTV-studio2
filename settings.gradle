@@ -2,7 +2,7 @@ pluginManagement {
     repositories {
         google()
         mavenCentral()
-        gradlePluginPortal()
+        gradleCentral()
     }
 }
 dependencyResolutionManagement {
@@ -10,10 +10,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-
-        // ADD THIS LINE HERE:
-        maven { url = uri('https://jitpack.io') }
     }
 }
-rootProject.name = "YourProjectName"
+rootProject.name = "JSTV-studio2"
 include ':app'
