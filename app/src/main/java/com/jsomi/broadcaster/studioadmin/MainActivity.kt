@@ -32,8 +32,6 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.roundToInt
 
-// JSTV ADMIN STUDIO - REAL CAMERA - REAL CONTROL
-// Paybill 516600 Acc 5600935001 WhatsApp 0763052911
 data class Sub(var username:String, var whatsapp:String, var pin:String, var plan:String, var amount:Int, var expiry:String, var isUnlocked:Boolean, var isBanned:Boolean, var premium:String, var receipt:String)
 data class PremiumSet(var name:String, var price:Int, var days:Int)
 data class Report(var from:String, var reason:String, var keyword:String)
@@ -50,7 +48,7 @@ fun RealCamera(modifier: Modifier = Modifier, isFront:Boolean) {
     val ctx = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current
     AndroidView(factory = { c ->
-        val pv = PerviewView(c)
+        val pv = PreviewView(c)
         val fut = ProcessCameraProvider.getInstance(c)
         fut.addListener({
             val provider = fut.get()
@@ -64,22 +62,19 @@ fun RealCamera(modifier: Modifier = Modifier, isFront:Boolean) {
 @Composable
 fun AdminApp() {
     val ctx = LocalContext.current
-    var screen by remember { mutableStateOf("DASH") } // DASH | LIVE | SETUP | SUBS | RATES | MONITOR | MEETING
+    var screen by remember { mutableStateOf("DASH") }
     var isLive by remember { mutableStateOf(false) }
     var isFront by remember { mutableStateOf(true) }
     var isMicOn by remember { mutableStateOf(true) }
-    // LIVE SETUP - All settings here, then OK -> appear on Main
     var channelName by remember { mutableStateOf("JSTV") }
     var ticker by remember { mutableStateOf("Welcome to JSTV") }
     var verse by remember { mutableStateOf("John 3:16") }
     var showTicker by remember { mutableStateOf(true) }
     var showVerse by remember { mutableStateOf(true) }
     var showLogo by remember { mutableStateOf(true) }
-    // DRAGGABLE offsets - All items draggable on Main
     var logoX by remember { mutableStateOf(20f) }; var logoY by remember { mutableStateOf(20f) }
     var tickerX by remember { mutableStateOf(0f) }; var tickerY by remember { mutableStateOf(400f) }
     var verseX by remember { mutableStateOf(20f) }; var verseY by remember { mutableStateOf(300f) }
-    // DATA - Auto-saved signups from Broadcaster
     val subs = remember { mutableStateListOf(
         Sub("KevinDemo","0763052911","123456","Monthly",1000,"12 Dec 2026",true,false,"Premium", "QK123ABC"),
         Sub("MaryChurch","0722000000","654321","3 Months",2500,"10 Feb 2027",true,false,"Premium","QK456DEF")
@@ -87,7 +82,7 @@ fun AdminApp() {
     val premiums = remember { mutableStateListOf(PremiumSet("Daily",200,1), PremiumSet("Monthly",1000,30), PremiumSet("3 Months",2500,90), PremiumSet("Year",8000,365)) }
     val reports = remember { mutableStateListOf(Report("Viewer1","Hate speech","hate"), Report("Viewer2","Illegal stream","illegal")) }
     var newPremiumName by remember { mutableStateOf("") }; var newPremiumPrice by remember { mutableStateOf("") }; var newPremiumDays by remember { mutableStateOf("") }
-    var msgToSub by remember { mutableStateOf("") }; var selectedSub by remember { mutableStateOf<Sub?>(null) }
+    var msgToSub by remember { mutableStateOf("") }
     var deleteCode by remember { mutableStateOf("") }; var deleteTarget by remember { mutableStateOf("") }
     var keywordAlert by remember { mutableStateOf("No keyword alert") }
     var monitorMsg by remember { mutableStateOf("") }
@@ -112,25 +107,22 @@ fun AdminApp() {
             reports.forEach{ r -> Column(modifier=Modifier.fillMaxWidth().background(Color.DarkGray).padding(10.dp)){ Text("Report from ${r.from}: ${r.reason} - Keyword: ${r.keyword}", color=Color.White, fontSize=12.sp); Row(horizontalArrangement=Arrangement.spacedBy(4.dp)){ Button(onClick={ toast("MUTED + STOPPED + BANNED ${r.from} in 1 tap") }, colors=ButtonDefaults.buttonColors(containerColor=Color.Red)){ Text("MUTE/STOP/BAN", fontSize=9.sp) }; Button(onClick={ toast("Warning sent to ${r.from}") }){ Text("WARN", fontSize=9.sp) } } }; Spacer(modifier=Modifier.height(6.dp)) }
             Spacer(modifier=Modifier.height(10.dp))
             Text("SUBSCRIBERS - Auto-saved from Broadcaster Sign Up:", color=Color.Yellow, fontWeight=FontWeight.Bold)
-            subs.forEach{ s -> Column(modifier=Modifier.fillMaxWidth().background(Color.DarkGray).padding(10.dp)){ Text("${s.username} | ${s.whatsapp} | ${s.plan} ${s.amount} KES | ${s.premium}", color=Color.White, fontWeight=FontWeight.Bold, fontSize=13.sp); Text("Expiry: ${s.expiry} | ${if(s.isUnlocked) "🔓 UNLOCKED" else "🔒 LOCKED - Expired"} | Receipt: ${s.receipt}", color=if(s.isUnlocked) Color.Green else Color.Red, fontSize=12.sp); Row(horizontalArrangement=Arrangement.spacedBy(4.dp)){ Button(onClick={ selectedSub=s; screen="SUBS" }, colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF7C4DFF))){ Text("MESSAGE", fontSize=9.sp) }; Button(onClick={ s.isUnlocked=!s.isUnlocked; toast("${s.username} ${if(s.isUnlocked) "unlocked" else "locked"}") }, colors=ButtonDefaults.buttonColors(containerColor=if(s.isUnlocked) Color.Red else Color.Green)){ Text(if(s.isUnlocked) "LOCK" else "UNLOCK", fontSize=9.sp) } } }; Spacer(modifier=Modifier.height(6.dp)) }
+            subs.forEach{ s -> Column(modifier=Modifier.fillMaxWidth().background(Color.DarkGray).padding(10.dp)){ Text("${s.username} | ${s.whatsapp} | ${s.plan} ${s.amount} KES | ${s.premium}", color=Color.White, fontWeight=FontWeight.Bold, fontSize=13.sp); Text("Expiry: ${s.expiry} | ${if(s.isUnlocked) "🔓 UNLOCKED" else "🔒 LOCKED - Expired"} | Receipt: ${s.receipt}", color=if(s.isUnlocked) Color.Green else Color.Red, fontSize=12.sp); Row(horizontalArrangement=Arrangement.spacedBy(4.dp)){ Button(onClick={ screen="SUBS" }, colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF7C4DFF))){ Text("MESSAGE", fontSize=9.sp) }; Button(onClick={ s.isUnlocked=!s.isUnlocked; toast("${s.username} ${if(s.isUnlocked) "unlocked" else "locked"}") }, colors=ButtonDefaults.buttonColors(containerColor=if(s.isUnlocked) Color.Red else Color.Green)){ Text(if(s.isUnlocked) "LOCK" else "UNLOCK", fontSize=9.sp) } } }; Spacer(modifier=Modifier.height(6.dp)) }
         }
     }
     if(screen=="LIVE"){
-        // MAIN LIVE SCREEN - ONLY 3 BUTTONS: GO LIVE / LIVE SETUP / BACK + END LIVE when live
         Box(modifier=Modifier.fillMaxSize().background(Color.Black)){
             RealCamera(modifier=Modifier.fillMaxSize(), isFront=isFront)
-            // DRAGGABLE ITEMS - After Setup OK, they appear here and are draggable
             if(showLogo) Box(modifier=Modifier.offset{ IntOffset(logoX.roundToInt(), logoY.roundToInt()) }.pointerInput(Unit){ detectDragGestures{ c,d -> logoX+=d.x; logoY+=d.y } }.background(Color.Red).padding(8.dp)){ Text("JSTV $channelName", color=Color.White, fontWeight=FontWeight.Bold) }
             if(showVerse) Box(modifier=Modifier.offset{ IntOffset(verseX.roundToInt(), verseY.roundToInt()) }.pointerInput(Unit){ detectDragGestures{ c,d -> verseX+=d.x; verseY+=d.y } }.background(Color.Black).padding(8.dp)){ Text("Verse: $verse", color=Color.Yellow) }
             if(showTicker) Box(modifier=Modifier.offset{ IntOffset(tickerX.roundToInt(), tickerY.roundToInt()) }.pointerInput(Unit){ detectDragGestures{ c,d -> tickerX+=d.x; tickerY+=d.y } }.fillMaxWidth().background(Color.Yellow).padding(8.dp)){ Text("Ticker: $ticker", color=Color.Black) }
             Column(modifier=Modifier.align(androidx.compose.ui.Alignment.TopEnd).padding(10.dp)){ Text(if(isLive) "● LIVE" else "○ NOT LIVE", color=if(isLive) Color.Red else Color.White, fontWeight=FontWeight.Bold); Text("Mic: ${if(isMicOn) "ON" else "OFF"} | Cam: ${if(isFront) "FRONT" else "BACK"}", color=Color.White, fontSize=11.sp) }
-            // 3 BUTTONS ONLY AT BOTTOM
             Column(modifier=Modifier.align(androidx.compose.ui.Alignment.BottomCenter).padding(12.dp)){
                 if(isLive) Button(onClick={ isLive=false; toast("Live Ended") }, modifier=Modifier.fillMaxWidth().height(54.dp), colors=ButtonDefaults.buttonColors(containerColor=Color.Red)){ Text("END LIVE", color=Color.White, fontWeight=FontWeight.Bold) }
                 else Button(onClick={ isLive=true; toast("You are LIVE in Studio!") }, modifier=Modifier.fillMaxWidth().height(54.dp), colors=ButtonDefaults.buttonColors(containerColor=Color.Red)){ Text("GO LIVE", color=Color.White, fontWeight=FontWeight.Bold) }
                 Spacer(modifier=Modifier.height(6.dp))
                 Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){ Button(onClick={ screen="SETUP" }, modifier=Modifier.weight(1f), colors=ButtonDefaults.buttonColors(containerColor=Color.Yellow)){ Text("LIVE SETUP", color=Color.Black, fontWeight=FontWeight.Bold) }; Button(onClick={ screen="DASH" }, modifier=Modifier.weight(1f)){ Text("BACK") } }
-                Text("Drag Logo / Verse / Ticker to move - Long press to drag", color=Color.White, fontSize=10.sp)
+                Text("Drag Logo / Verse / Ticker to move", color=Color.White, fontSize=10.sp)
             }
         }
     }
@@ -179,7 +171,7 @@ fun AdminApp() {
             OutlinedTextField(value=newPremiumName, onValueChange={ newPremiumName=it }, label={ Text("Premium Name - e.g. Church Premium") }, modifier=Modifier.fillMaxWidth())
             OutlinedTextField(value=newPremiumPrice, onValueChange={ newPremiumPrice=it }, label={ Text("Price KES - e.g. 5000") }, modifier=Modifier.fillMaxWidth())
             OutlinedTextField(value=newPremiumDays, onValueChange={ newPremiumDays=it }, label={ Text("Days - e.g. 60") }, modifier=Modifier.fillMaxWidth())
-            Button(onClick={ if(newPremiumName.isNotBlank() && (newPremiumPrice.toIntOrNull()?:0)>0){ premiums.add(PremiumSet(newPremiumName, newPremiumPrice.toInt(), newPremiumDays.toIntOrNull()?:30)); toast("Premium ${newPremiumName} added - Subscribers will see it"); newPremiumName=""; newPremiumPrice=""; newPremiumDays="" } else toast("Enter Name + Price") }, modifier=Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=Color.Green)){ Text("ADD PREMIUM SET") }
+            Button(onClick={ if(newPremiumName.isNotBlank() && (newPremiumPrice.toIntOrNull()?:0)>0){ premiums.add(PremiumSet(newPremiumName, newPremiumPrice.toInt(), newPremiumDays.toIntOrNull()?:30)); toast("Premium ${newPremiumName} added"); newPremiumName=""; newPremiumPrice=""; newPremiumDays="" } else toast("Enter Name + Price") }, modifier=Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=Color.Green)){ Text("ADD PREMIUM SET") }
             Button(onClick={ screen="DASH" }, modifier=Modifier.fillMaxWidth()){ Text("BACK") }
         }
     }
