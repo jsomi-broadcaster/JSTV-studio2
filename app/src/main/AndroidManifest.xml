@@ -17,17 +17,17 @@
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
-        android:label="JSTV Broadcaster"
+        android:label="JSTV Admin Studio"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.JSTVbroadcaster"
+        android:theme="@style/Theme.JSTVstudio2"
         android:usesCleartextTraffic="false"
         tools:targetApi="31">
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:label="JSTV Broadcaster"
-            android:theme="@style/Theme.JSTVbroadcaster"
+            android:label="JSTV Admin Studio"
+            android:theme="@style/Theme.JSTVstudio2"
             android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
