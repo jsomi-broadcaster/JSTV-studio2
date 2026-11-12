@@ -1,4 +1,4 @@
-package com.jsomi.admin
+package com.jsomi.broadcaster.studioadmin
 
 import android.Manifest
 import android.content.Intent
@@ -20,6 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -66,7 +67,6 @@ fun AdminApp() {
     var hasPerm by remember { mutableStateOf(ContextCompat.checkSelfPermission(ctx, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(ctx, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) }
     val permLauncher = androidx.activity.compose.rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { res -> hasPerm = res.values.all { it } }
     LaunchedEffect(Unit) { if (!hasPerm) permLauncher.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)) }
-
     var screen by remember { mutableStateOf("DASH") }
     var isLive by remember { mutableStateOf(false) }
     var isFront by remember { mutableStateOf(true) }
@@ -80,27 +80,22 @@ fun AdminApp() {
     var logoX by remember { mutableStateOf(20f) }; var logoY by remember { mutableStateOf(20f) }
     var tickerX by remember { mutableStateOf(0f) }; var tickerY by remember { mutableStateOf(400f) }
     var verseX by remember { mutableStateOf(20f) }; var verseY by remember { mutableStateOf(300f) }
-
-    // REAL SUBS - EMPTY - Only real sign-ups will appear. No demo users.
     val subs = remember { mutableStateListOf<Sub>() }
     val premiums = remember { mutableStateListOf(PremiumSet("Daily", 200, 1), PremiumSet("Monthly", 1000, 30), PremiumSet("3 Months", 2500, 90), PremiumSet("Year", 8000, 365)) }
-
-    // INBOX SEND - Admin types real message, Broadcaster will see it. No fake messages.
     var inboxMsg by remember { mutableStateOf("") }
     var msgToSub by remember { mutableStateOf("") }
     var newPremiumName by remember { mutableStateOf("") }; var newPremiumPrice by remember { mutableStateOf("") }; var newPremiumDays by remember { mutableStateOf("") }
     var adminReceipt by remember { mutableStateOf("") }; var adminUser by remember { mutableStateOf("") }
-
     fun toast(m: String) { Toast.makeText(ctx, m, Toast.LENGTH_SHORT).show() }
     fun openWhatsApp(num: String, msg: String) {
         val n = if (num.startsWith("0")) "254" + num.substring(1) else num.replace("+", "")
         try { ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$n?text=" + Uri.encode(msg)))) } catch (e: Exception) { toast("WhatsApp not found") }
     }
-
     if (screen == "DASH") {
         Column(modifier = Modifier.fillMaxSize().background(Color.Black).padding(16.dp).verticalScroll(rememberScrollState())) {
             Text("JSTV ADMIN STUDIO", color = Color.Yellow, fontSize = 26.sp, fontWeight = FontWeight.Bold)
             Text("Paybill 516600 Acc 5600935001 | Subs: ${subs.size} | Live: ${if (isLive) "ON" else "OFF"} | Camera: ${if (hasPerm) "ALLOWED" else "NOT ALLOWED"}", color = Color.White, fontSize = 12.sp)
+            Text("Time: ${SimpleDateFormat("hh:mm:ss a", Locale.getDefault()).format(Date())}", color = Color.Gray, fontSize = 11.sp)
             if (!hasPerm) Button(onClick = { permLauncher.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)) }, colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) { Text("ALLOW CAMERA + MIC") }
             Spacer(modifier = Modifier.height(10.dp))
             Button(onClick = { screen = "LIVE" }, modifier = Modifier.fillMaxWidth().height(54.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) { Text("📹 GO TO LIVE STUDIO", color = Color.White, fontWeight = FontWeight.Bold) }
@@ -123,15 +118,13 @@ fun AdminApp() {
             Spacer(modifier = Modifier.height(10.dp))
             Text("SEND INBOX NOTIFICATION TO BROADCASTERS:", color = Color.Yellow, fontWeight = FontWeight.Bold)
             OutlinedTextField(value = inboxMsg, onValueChange = { inboxMsg = it }, label = { Text("Type real notification...") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
-            Button(onClick = { if (inboxMsg.isBlank()) toast("Type a message first") else { toast("Notification ready to send: $inboxMsg"); inboxMsg = "" } }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C4DFF))) { Text("SEND NOTIFICATION TO BROADCASTERS") }
-            Text("Note: In this version, also send via WhatsApp to make sure user sees it.", color = Color.Gray, fontSize = 11.sp)
+            Button(onClick = { if (inboxMsg.isBlank()) toast("Type a message first") else { toast("Notification ready: $inboxMsg"); inboxMsg = "" } }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C4DFF))) { Text("SEND NOTIFICATION TO BROADCASTERS") }
         }
     }
-
     if (screen == "LIVE") {
         Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
             if (hasPerm) RealCamera(modifier = Modifier.fillMaxSize(), isFront = isFront)
-            else Box(modifier = Modifier.fillMaxSize().background(Color.DarkGray)) { Button(onClick = { permLauncher.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)) }, modifier = Modifier.padding(20.dp)) { Text("ALLOW CAMERA + MIC") } }
+            else Box(modifier = Modifier.fillMaxSize().background(Color.DarkGray), contentAlignment = Alignment.Center) { Button(onClick = { permLauncher.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)) }) { Text("ALLOW CAMERA + MIC") } }
             if (showLogo) Box(modifier = Modifier.offset { IntOffset(logoX.roundToInt(), logoY.roundToInt()) }.pointerInput(Unit) { detectDragGestures { _, d -> logoX += d.x; logoY += d.y } }.background(Color.Red).padding(8.dp)) { Text("JSTV $channelName", color = Color.White, fontWeight = FontWeight.Bold) }
             if (showVerse) Box(modifier = Modifier.offset { IntOffset(verseX.roundToInt(), verseY.roundToInt()) }.pointerInput(Unit) { detectDragGestures { _, d -> verseX += d.x; verseY += d.y } }.background(Color.Black).padding(8.dp)) { Text("Verse: $verse", color = Color.Yellow) }
             if (showTicker) Box(modifier = Modifier.offset { IntOffset(tickerX.roundToInt(), tickerY.roundToInt()) }.pointerInput(Unit) { detectDragGestures { _, d -> tickerX += d.x; tickerY += d.y } }.fillMaxWidth().background(Color.Yellow).padding(8.dp)) { Text("Ticker: $ticker", color = Color.Black) }
@@ -144,7 +137,6 @@ fun AdminApp() {
             }
         }
     }
-
     if (screen == "SETUP") {
         Column(modifier = Modifier.fillMaxSize().background(Color.Black).padding(16.dp).verticalScroll(rememberScrollState())) {
             Text("LIVE SETUP", color = Color.Yellow, fontSize = 22.sp, fontWeight = FontWeight.Bold)
@@ -162,7 +154,6 @@ fun AdminApp() {
             Button(onClick = { screen = "LIVE" }, modifier = Modifier.fillMaxWidth()) { Text("BACK") }
         }
     }
-
     if (screen == "SUBS") {
         Column(modifier = Modifier.fillMaxSize().background(Color.Black).padding(16.dp).verticalScroll(rememberScrollState())) {
             Text("SUBSCRIBERS + VERIFY PAYMENT", color = Color.Yellow, fontSize = 22.sp, fontWeight = FontWeight.Bold)
@@ -181,7 +172,18 @@ fun AdminApp() {
             }, modifier = Modifier.fillMaxWidth().height(54.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.Green)) { Text("VERIFY & UNLOCK USER", color = Color.White, fontWeight = FontWeight.Bold) }
             Text("Steps: 1. Check YOUR M-PESA SMS - Is Receipt real? 2. Check Amount matches Plan 3. Tap VERIFY", color = Color.Gray, fontSize = 11.sp)
             Spacer(modifier = Modifier.height(10.dp))
-            Text("ADD REAL SUBSCRIBER MANUALLY (If user paid but not in list):", color = Color.Yellow, fontWeight = FontWeight.Bold)
+            Text("STK PUSH - Send POP to User Phone:", color = Color.Cyan, fontWeight = FontWeight.Bold)
+            Text("1. Open M-PESA Business App\n2. Send STK Push to user number\n3. User gets REAL Safaricom PIN popup on THEIR phone", color = Color.Gray, fontSize = 11.sp)
+            Button(onClick = {
+                if (adminUser.isBlank()) toast("Enter Username first")
+                else {
+                    val t = subs.find { it.username.equals(adminUser, ignoreCase = true) }
+                    if (t != null) { openWhatsApp(t.whatsapp, "Hi ${t.username}, I am sending STK PUSH to your phone now for ${t.plan} - ${t.amount} KES. Watch for Safaricom PIN popup and enter PIN there."); toast("Tell user STK is coming - Now push from M-PESA Business App") }
+                    else toast("User not found")
+                }
+            }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color.Cyan)) { Text("SEND STK PUSH TO THIS USER") }
+            Spacer(modifier = Modifier.height(10.dp))
+            Text("ADD REAL SUBSCRIBER MANUALLY:", color = Color.Yellow, fontWeight = FontWeight.Bold)
             var newUser by remember { mutableStateOf("") }; var newWhats by remember { mutableStateOf("") }
             OutlinedTextField(value = newUser, onValueChange = { newUser = it }, label = { Text("Real Username") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(value = newWhats, onValueChange = { newWhats = it }, label = { Text("Real WhatsApp") }, modifier = Modifier.fillMaxWidth())
@@ -206,11 +208,9 @@ fun AdminApp() {
             Button(onClick = { screen = "DASH" }, modifier = Modifier.fillMaxWidth()) { Text("BACK") }
         }
     }
-
     if (screen == "RATES") {
         Column(modifier = Modifier.fillMaxSize().background(Color.Black).padding(16.dp).verticalScroll(rememberScrollState())) {
             Text("RATES + PREMIUM SETS - REAL PRICES", color = Color.Yellow, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text("These are the real prices users pay. Change only if you really change M-PESA price.", color = Color.Gray, fontSize = 12.sp)
             premiums.forEach { p -> Row(modifier = Modifier.fillMaxWidth().background(Color.DarkGray).padding(10.dp)) { Text("${p.name} - ${p.price} KES - ${p.days} Days", color = Color.White, modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold) }; Spacer(modifier = Modifier.height(6.dp)) }
             Spacer(modifier = Modifier.height(10.dp))
             Text("ADD NEW PREMIUM SET:", color = Color.Yellow, fontWeight = FontWeight.Bold)
@@ -221,11 +221,9 @@ fun AdminApp() {
             Button(onClick = { screen = "DASH" }, modifier = Modifier.fillMaxWidth()) { Text("BACK") }
         }
     }
-
     if (screen == "INBOX") {
         Column(modifier = Modifier.fillMaxSize().background(Color.Black).padding(16.dp).verticalScroll(rememberScrollState())) {
             Text("INBOX - SEND TO BROADCASTERS", color = Color.Yellow, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text("Type a REAL notification. It will be sent to broadcasters.", color = Color.Gray, fontSize = 12.sp)
             OutlinedTextField(value = inboxMsg, onValueChange = { inboxMsg = it }, label = { Text("Real notification...") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
             Button(onClick = { if (inboxMsg.isBlank()) toast("Type a real message first") else { toast("Notification sent: $inboxMsg"); inboxMsg = "" } }, modifier = Modifier.fillMaxWidth().height(54.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C4DFF))) { Text("SEND NOTIFICATION") }
             Button(onClick = { screen = "DASH" }, modifier = Modifier.fillMaxWidth()) { Text("BACK") }
