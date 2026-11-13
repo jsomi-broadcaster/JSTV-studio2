@@ -42,7 +42,7 @@ data class PremiumSet(var name: String, var price: Int, var days: Int)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { MaterialTheme { AdminApp() } }
+        try { setContent { MaterialTheme { AdminApp() } } } catch (e: Exception) { Toast.makeText(this, "Start error: " + e.message, Toast.LENGTH_LONG).show() }
     }
 }
 
@@ -51,12 +51,17 @@ fun RealCamera(modifier: Modifier = Modifier, isFront: Boolean) {
     val lifecycle = LocalLifecycleOwner.current
     AndroidView(factory = { c ->
         val pv = PreviewView(c)
-        val fut = ProcessCameraProvider.getInstance(c)
-        fut.addListener({
-            val provider = fut.get()
-            val preview = Preview.Builder().build().also { it.setSurfaceProvider(pv.surfaceProvider) }
-            try { provider.unbindAll(); provider.bindToLifecycle(lifecycle, if (isFront) CameraSelector.DEFAULT_FRONT_CAMERA else CameraSelector.DEFAULT_BACK_CAMERA, preview) } catch (e: Exception) {}
-        }, ContextCompat.getMainExecutor(c))
+        try {
+            val fut = ProcessCameraProvider.getInstance(c)
+            fut.addListener({
+                try {
+                    val provider = fut.get()
+                    val preview = Preview.Builder().build().also { it.setSurfaceProvider(pv.surfaceProvider) }
+                    provider.unbindAll()
+                    provider.bindToLifecycle(lifecycle, if (isFront) CameraSelector.DEFAULT_FRONT_CAMERA else CameraSelector.DEFAULT_BACK_CAMERA, preview)
+                } catch (e: Exception) {}
+            }, ContextCompat.getMainExecutor(c))
+        } catch (e: Exception) {}
         pv
     }, modifier = modifier)
 }
@@ -64,9 +69,8 @@ fun RealCamera(modifier: Modifier = Modifier, isFront: Boolean) {
 @Composable
 fun AdminApp() {
     val ctx = LocalContext.current
-    var hasPerm by remember { mutableStateOf(ContextCompat.checkSelfPermission(ctx, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED && ContextCompat.checkSelfPermission(ctx, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) }
+    var hasPerm by remember { mutableStateOf(ContextCompat.checkSelfPermission(ctx, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) }
     val permLauncher = androidx.activity.compose.rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { res -> hasPerm = res.values.all { it } }
-    LaunchedEffect(Unit) { if (!hasPerm) permLauncher.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)) }
     var screen by remember { mutableStateOf("DASH") }
     var isLive by remember { mutableStateOf(false) }
     var isFront by remember { mutableStateOf(true) }
@@ -94,16 +98,15 @@ fun AdminApp() {
     if (screen == "DASH") {
         Column(modifier = Modifier.fillMaxSize().background(Color.Black).padding(16.dp).verticalScroll(rememberScrollState())) {
             Text("JSTV ADMIN STUDIO", color = Color.Yellow, fontSize = 26.sp, fontWeight = FontWeight.Bold)
-            Text("Paybill 516600 Acc 5600935001 | Subs: ${subs.size} | Live: ${if (isLive) "ON" else "OFF"} | Camera: ${if (hasPerm) "ALLOWED" else "NOT ALLOWED"}", color = Color.White, fontSize = 12.sp)
+            Text("Paybill 516600 Acc 5600935001 | Subs: ${subs.size} | Live: ${if (isLive) "ON" else "OFF"}", color = Color.White, fontSize = 12.sp)
             Text("Time: ${SimpleDateFormat("hh:mm:ss a", Locale.getDefault()).format(Date())}", color = Color.Gray, fontSize = 11.sp)
-            if (!hasPerm) Button(onClick = { permLauncher.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)) }, colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) { Text("ALLOW CAMERA + MIC") }
             Spacer(modifier = Modifier.height(10.dp))
             Button(onClick = { screen = "LIVE" }, modifier = Modifier.fillMaxWidth().height(54.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) { Text("📹 GO TO LIVE STUDIO", color = Color.White, fontWeight = FontWeight.Bold) }
             Spacer(modifier = Modifier.height(6.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { Button(onClick = { screen = "SUBS" }, modifier = Modifier.weight(1f)) { Text("SUBS ${subs.size}") }; Button(onClick = { screen = "RATES" }, modifier = Modifier.weight(1f)) { Text("RATES") }; Button(onClick = { screen = "INBOX" }, modifier = Modifier.weight(1f)) { Text("INBOX") } }
             Spacer(modifier = Modifier.height(12.dp))
-            Text("SUBSCRIBERS - Real sign-ups only:", color = Color.Yellow, fontWeight = FontWeight.Bold)
-            if (subs.isEmpty()) Text("No subscribers yet. Real users will appear after they Sign Up.", color = Color.Gray, fontSize = 12.sp)
+            Text("SUBSCRIBERS:", color = Color.Yellow, fontWeight = FontWeight.Bold)
+            if (subs.isEmpty()) Text("No subscribers yet.", color = Color.Gray, fontSize = 12.sp)
             subs.forEach { s ->
                 Column(modifier = Modifier.fillMaxWidth().background(Color.DarkGray).padding(10.dp)) {
                     Text("${s.username} | ${s.whatsapp} | ${s.plan} ${s.amount} KES", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
@@ -116,7 +119,7 @@ fun AdminApp() {
                 Spacer(modifier = Modifier.height(6.dp))
             }
             Spacer(modifier = Modifier.height(10.dp))
-            Text("SEND INBOX NOTIFICATION TO BROADCASTERS:", color = Color.Yellow, fontWeight = FontWeight.Bold)
+            Text("SEND INBOX NOTIFICATION:", color = Color.Yellow, fontWeight = FontWeight.Bold)
             OutlinedTextField(value = inboxMsg, onValueChange = { inboxMsg = it }, label = { Text("Type real notification...") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
             Button(onClick = { if (inboxMsg.isBlank()) toast("Type a message first") else { toast("Notification ready: $inboxMsg"); inboxMsg = "" } }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C4DFF))) { Text("SEND NOTIFICATION TO BROADCASTERS") }
         }
@@ -124,10 +127,18 @@ fun AdminApp() {
     if (screen == "LIVE") {
         Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
             if (hasPerm) RealCamera(modifier = Modifier.fillMaxSize(), isFront = isFront)
-            else Box(modifier = Modifier.fillMaxSize().background(Color.DarkGray), contentAlignment = Alignment.Center) { Button(onClick = { permLauncher.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)) }) { Text("ALLOW CAMERA + MIC") } }
-            if (showLogo) Box(modifier = Modifier.offset { IntOffset(logoX.roundToInt(), logoY.roundToInt()) }.pointerInput(Unit) { detectDragGestures { _, d -> logoX += d.x; logoY += d.y } }.background(Color.Red).padding(8.dp)) { Text("JSTV $channelName", color = Color.White, fontWeight = FontWeight.Bold) }
-            if (showVerse) Box(modifier = Modifier.offset { IntOffset(verseX.roundToInt(), verseY.roundToInt()) }.pointerInput(Unit) { detectDragGestures { _, d -> verseX += d.x; verseY += d.y } }.background(Color.Black).padding(8.dp)) { Text("Verse: $verse", color = Color.Yellow) }
-            if (showTicker) Box(modifier = Modifier.offset { IntOffset(tickerX.roundToInt(), tickerY.roundToInt()) }.pointerInput(Unit) { detectDragGestures { _, d -> tickerX += d.x; tickerY += d.y } }.fillMaxWidth().background(Color.Yellow).padding(8.dp)) { Text("Ticker: $ticker", color = Color.Black) }
+            else Box(modifier = Modifier.fillMaxSize().background(Color.DarkGray), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Camera Needs Permission", color = Color.White, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Button(onClick = { permLauncher.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)) }) { Text("ALLOW CAMERA + MIC") }
+                }
+            }
+            if (hasPerm) {
+                if (showLogo) Box(modifier = Modifier.offset { IntOffset(logoX.roundToInt(), logoY.roundToInt()) }.pointerInput(Unit) { detectDragGestures { _, d -> logoX += d.x; logoY += d.y } }.background(Color.Red).padding(8.dp)) { Text("JSTV $channelName", color = Color.White, fontWeight = FontWeight.Bold) }
+                if (showVerse) Box(modifier = Modifier.offset { IntOffset(verseX.roundToInt(), verseY.roundToInt()) }.pointerInput(Unit) { detectDragGestures { _, d -> verseX += d.x; verseY += d.y } }.background(Color.Black).padding(8.dp)) { Text("Verse: $verse", color = Color.Yellow) }
+                if (showTicker) Box(modifier = Modifier.offset { IntOffset(tickerX.roundToInt(), tickerY.roundToInt()) }.pointerInput(Unit) { detectDragGestures { _, d -> tickerX += d.x; tickerY += d.y } }.fillMaxWidth().background(Color.Yellow).padding(8.dp)) { Text("Ticker: $ticker", color = Color.Black) }
+            }
             Column(modifier = Modifier.align(Alignment.TopEnd).padding(10.dp)) { Text(if (isLive) "● LIVE" else "○ NOT LIVE", color = if (isLive) Color.Red else Color.White, fontWeight = FontWeight.Bold); Text("Mic: ${if (isMicOn) "ON" else "OFF"} | Cam: ${if (isFront) "FRONT" else "BACK"}", color = Color.White, fontSize = 11.sp) }
             Column(modifier = Modifier.align(Alignment.BottomCenter).padding(12.dp)) {
                 if (isLive) Button(onClick = { isLive = false; toast("Live Ended") }, modifier = Modifier.fillMaxWidth().height(54.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) { Text("END LIVE", color = Color.White, fontWeight = FontWeight.Bold) }
@@ -148,7 +159,7 @@ fun AdminApp() {
             Row(verticalAlignment = Alignment.CenterVertically) { Text("Show Ticker", color = Color.White, modifier = Modifier.weight(1f)); Switch(checked = showTicker, onCheckedChange = { showTicker = it }) }
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { Button(onClick = { isFront = true }, modifier = Modifier.weight(1f)) { Text("FRONT CAM") }; Button(onClick = { isFront = false }, modifier = Modifier.weight(1f)) { Text("BACK CAM") } }
             Button(onClick = { isMicOn = !isMicOn }, modifier = Modifier.fillMaxWidth()) { Text(if (isMicOn) "MIC ON" else "MIC OFF") }
-            if (!hasPerm) Button(onClick = { permLauncher.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)) }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) { Text("ALLOW CAMERA + MIC") }
+            Button(onClick = { permLauncher.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)) }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) { Text("ALLOW CAMERA + MIC") }
             Spacer(modifier = Modifier.height(12.dp))
             Button(onClick = { screen = "LIVE"; toast("Setup Saved") }, modifier = Modifier.fillMaxWidth().height(54.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.Green)) { Text("OK - APPLY TO MAIN SCREEN", color = Color.White, fontWeight = FontWeight.Bold) }
             Button(onClick = { screen = "LIVE" }, modifier = Modifier.fillMaxWidth()) { Text("BACK") }
@@ -157,9 +168,8 @@ fun AdminApp() {
     if (screen == "SUBS") {
         Column(modifier = Modifier.fillMaxSize().background(Color.Black).padding(16.dp).verticalScroll(rememberScrollState())) {
             Text("SUBSCRIBERS + VERIFY PAYMENT", color = Color.Yellow, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text("Only unlock AFTER you check YOUR M-PESA SMS. No auto-unlock.", color = Color.Red, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Text("Only unlock AFTER you check YOUR M-PESA SMS.", color = Color.Red, fontSize = 12.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
-            Text("VERIFY PAYMENT - Enter REAL Receipt to UNLOCK:", color = Color.Yellow, fontWeight = FontWeight.Bold)
             OutlinedTextField(value = adminUser, onValueChange = { adminUser = it }, label = { Text("Username to Unlock") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(value = adminReceipt, onValueChange = { adminReceipt = it.uppercase() }, label = { Text("Receipt Code from User") }, modifier = Modifier.fillMaxWidth())
             Button(onClick = {
@@ -167,31 +177,28 @@ fun AdminApp() {
                 else {
                     val target = subs.find { it.username.equals(adminUser, ignoreCase = true) }
                     if (target != null) { target.isUnlocked = true; target.receipt = adminReceipt; toast("${target.username} UNLOCKED - Receipt $adminReceipt"); adminReceipt = ""; adminUser = "" }
-                    else toast("User $adminUser not found. User must Sign Up first.")
+                    else toast("User $adminUser not found.")
                 }
             }, modifier = Modifier.fillMaxWidth().height(54.dp), colors = ButtonDefaults.buttonColors(containerColor = Color.Green)) { Text("VERIFY & UNLOCK USER", color = Color.White, fontWeight = FontWeight.Bold) }
-            Text("Steps: 1. Check YOUR M-PESA SMS - Is Receipt real? 2. Check Amount matches Plan 3. Tap VERIFY", color = Color.Gray, fontSize = 11.sp)
             Spacer(modifier = Modifier.height(10.dp))
-            Text("STK PUSH - Send POP to User Phone:", color = Color.Cyan, fontWeight = FontWeight.Bold)
-            Text("1. Open M-PESA Business App\n2. Send STK Push to user number\n3. User gets REAL Safaricom PIN popup on THEIR phone", color = Color.Gray, fontSize = 11.sp)
+            Text("STK PUSH:", color = Color.Cyan, fontWeight = FontWeight.Bold)
+            Text("1. Open M-PESA Business App\n2. Send STK Push to user number\n3. User gets REAL Safaricom PIN popup", color = Color.Gray, fontSize = 11.sp)
             Button(onClick = {
                 if (adminUser.isBlank()) toast("Enter Username first")
                 else {
                     val t = subs.find { it.username.equals(adminUser, ignoreCase = true) }
-                    if (t != null) { openWhatsApp(t.whatsapp, "Hi ${t.username}, I am sending STK PUSH to your phone now for ${t.plan} - ${t.amount} KES. Watch for Safaricom PIN popup and enter PIN there."); toast("Tell user STK is coming - Now push from M-PESA Business App") }
+                    if (t != null) { openWhatsApp(t.whatsapp, "Hi ${t.username}, I am sending STK PUSH now for ${t.plan} - ${t.amount} KES. Watch for Safaricom PIN popup."); toast("Now push from M-PESA Business App") }
                     else toast("User not found")
                 }
             }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color.Cyan)) { Text("SEND STK PUSH TO THIS USER") }
             Spacer(modifier = Modifier.height(10.dp))
-            Text("ADD REAL SUBSCRIBER MANUALLY:", color = Color.Yellow, fontWeight = FontWeight.Bold)
             var newUser by remember { mutableStateOf("") }; var newWhats by remember { mutableStateOf("") }
             OutlinedTextField(value = newUser, onValueChange = { newUser = it }, label = { Text("Real Username") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(value = newWhats, onValueChange = { newWhats = it }, label = { Text("Real WhatsApp") }, modifier = Modifier.fillMaxWidth())
-            Button(onClick = { if (newUser.isBlank() || newWhats.isBlank()) toast("Enter Real Username + WhatsApp") else { subs.add(Sub(newUser, newWhats, "", "Monthly", 1000, "Not set yet", false, "")); toast("Added $newUser - Now verify payment to unlock"); newUser = ""; newWhats = "" } }, modifier = Modifier.fillMaxWidth()) { Text("ADD REAL SUBSCRIBER") }
+            Button(onClick = { if (newUser.isBlank() || newWhats.isBlank()) toast("Enter Username + WhatsApp") else { subs.add(Sub(newUser, newWhats, "", "Monthly", 1000, "Not set yet", false, "")); toast("Added $newUser"); newUser = ""; newWhats = "" } }, modifier = Modifier.fillMaxWidth()) { Text("ADD REAL SUBSCRIBER") }
             Spacer(modifier = Modifier.height(10.dp))
-            Text("MESSAGE TO SUBSCRIBER:", color = Color.White)
             OutlinedTextField(value = msgToSub, onValueChange = { msgToSub = it }, label = { Text("Message...") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
-            Button(onClick = { if (msgToSub.isBlank()) toast("Type message first") else toast("Message ready: $msgToSub - Tap WHATSAPP on user below") }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C4DFF))) { Text("PREPARE MESSAGE") }
+            Button(onClick = { if (msgToSub.isBlank()) toast("Type message first") else toast("Message ready") }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C4DFF))) { Text("PREPARE MESSAGE") }
             Spacer(modifier = Modifier.height(10.dp))
             if (subs.isEmpty()) Text("No subscribers yet.", color = Color.Gray)
             subs.forEach { s ->
@@ -210,10 +217,9 @@ fun AdminApp() {
     }
     if (screen == "RATES") {
         Column(modifier = Modifier.fillMaxSize().background(Color.Black).padding(16.dp).verticalScroll(rememberScrollState())) {
-            Text("RATES + PREMIUM SETS - REAL PRICES", color = Color.Yellow, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text("RATES + PREMIUM SETS", color = Color.Yellow, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             premiums.forEach { p -> Row(modifier = Modifier.fillMaxWidth().background(Color.DarkGray).padding(10.dp)) { Text("${p.name} - ${p.price} KES - ${p.days} Days", color = Color.White, modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold) }; Spacer(modifier = Modifier.height(6.dp)) }
             Spacer(modifier = Modifier.height(10.dp))
-            Text("ADD NEW PREMIUM SET:", color = Color.Yellow, fontWeight = FontWeight.Bold)
             OutlinedTextField(value = newPremiumName, onValueChange = { newPremiumName = it }, label = { Text("Premium Name") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(value = newPremiumPrice, onValueChange = { newPremiumPrice = it }, label = { Text("Price KES") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(value = newPremiumDays, onValueChange = { newPremiumDays = it }, label = { Text("Days") }, modifier = Modifier.fillMaxWidth())
