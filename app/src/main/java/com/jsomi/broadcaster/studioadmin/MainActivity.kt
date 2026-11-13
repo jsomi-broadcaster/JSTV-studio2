@@ -27,6 +27,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -39,12 +40,32 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.roundToInt
 
-// CHANGE THIS TO YOUR FIREBASE URL - SAME IN BOTH APPS
 const val DB_URL = "https://jstv-studio-default-rtdb.firebaseio.com"
 const val PAYBILL = "516600"
 const val ACCOUNT = "5600935001"
 val BAD_WORDS = listOf("hate","kill","idiot","stupid","fuck","shit","bitch","tribal","murder","rape","terror")
-
+val BIBLE_LIST = listOf(
+"John 3:16 - For God so loved the world...",
+"Psalm 23:1 - The LORD is my shepherd, I lack nothing.",
+"Jeremiah 29:11 - For I know the plans I have for you...",
+"Philippians 4:13 - I can do all things through Christ...",
+"Romans 8:28 - All things work together for good...",
+"Isaiah 41:10 - Do not fear, for I am with you...",
+"Matthew 11:28 - Come to me, all who are weary...",
+"Psalm 46:1 - God is our refuge and strength...",
+"Proverbs 3:5 - Trust in the LORD with all your heart...",
+"Joshua 1:9 - Be strong and courageous...",
+"2 Timothy 1:7 - God has not given us a spirit of fear...",
+"Psalm 121:1 - I lift my eyes to the mountains...",
+"Matthew 5:14 - You are the light of the world...",
+"Romans 10:9 - If you confess with your mouth...",
+"John 14:6 - I am the way, the truth, and the life...",
+"Psalm 100:4 - Enter His gates with thanksgiving...",
+"Galatians 5:22 - The fruit of the Spirit is love...",
+"Hebrews 11:1 - Faith is confidence in what we hope for...",
+"1 Corinthians 13:4 - Love is patient, love is kind...",
+"Revelation 21:4 - He will wipe every tear..."
+)
 fun firebaseGet(path: String, onDone: (String) -> Unit) {
     Thread { try { val c = URL("$DB_URL/$path.json").openConnection() as HttpURLConnection; c.connectTimeout = 8000; val r = c.inputStream.bufferedReader().readText(); onDone(r) } catch(e: Exception){ onDone("") } }.start()
 }
@@ -71,39 +92,41 @@ class MainActivity : ComponentActivity() {
     var screen by remember{ mutableStateOf("DASH") }
     var isLive by remember{ mutableStateOf(false) }; var isFront by remember{ mutableStateOf(true) }; var isMicOn by remember{ mutableStateOf(true) }
     var channelName by remember{ mutableStateOf("JSTV") }; var ticker by remember{ mutableStateOf("Welcome to JSTV - Paybill $PAYBILL Acc $ACCOUNT") }; var verse by remember{ mutableStateOf("John 3:16") }
-    var showTicker by remember{ mutableStateOf(true) }; var showVerse by remember{ mutableStateOf(true) }; var showLogo by remember{ mutableStateOf(true) }
-    var logoX by remember{ mutableStateOf(20f)}; var logoY by remember{ mutableStateOf(20f)}; var tickerX by remember{ mutableStateOf(0f)}; var tickerY by remember{ mutableStateOf(400f)}; var verseX by remember{ mutableStateOf(20f)}; var verseY by remember{ mutableStateOf(300f)}
+    var showTicker by remember{ mutableStateOf(true) }; var showVerse by remember{ mutableStateOf(true) }; var showLogo by remember{ mutableStateOf(true) }; var showBible by remember{ mutableStateOf(false) }; var bibleText by remember{ mutableStateOf("") }
+    var logoX by remember{ mutableStateOf(20f)}; var logoY by remember{ mutableStateOf(20f)}; var tickerX by remember{ mutableStateOf(0f)}; var tickerY by remember{ mutableStateOf(400f)}; var verseX by remember{ mutableStateOf(20f)}; var verseY by remember{ mutableStateOf(300f)}; var bibleX by remember{ mutableStateOf(20f)}; var bibleY by remember{ mutableStateOf(200f)}
     val subs=remember{ mutableStateListOf<Sub>() }
     val premiums=remember{ mutableStateListOf<Triple<String,Int,Int>>(Triple("Daily",200,1), Triple("Monthly",1000,30), Triple("3 Months",2500,90), Triple("Year",8000,365)) }
-    var inboxMsg by remember{ mutableStateOf("") }; var msgToSub by remember{ mutableStateOf("") }
+    var inboxMsg by remember{ mutableStateOf("") }
     var newPremiumName by remember{ mutableStateOf("")}; var newPremiumPrice by remember{ mutableStateOf("")}; var newPremiumDays by remember{ mutableStateOf("")}
     var adminReceipt by remember{ mutableStateOf("")}; var adminUser by remember{ mutableStateOf("")}
     var liveChat by remember{ mutableStateOf("")}; var alertMsg by remember{ mutableStateOf("")}
-    var monitorOn by remember{ mutableStateOf(true)}
+    var monitorOn by remember{ mutableStateOf(true)}; var searchBible by remember{ mutableStateOf("")}
     fun toast(m:String){ Toast.makeText(ctx,m,Toast.LENGTH_SHORT).show() }
     fun openWhatsApp(num:String,msg:String){ val n=if(num.startsWith("0")) "254"+num.substring(1) else num.replace("+",""); try{ ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$n?text="+Uri.encode(msg)))) }catch(e:Exception){ toast("WhatsApp not found") } }
     fun refreshSubs(){
-        firebaseGet("users"){ res-> try{ if(res.isNotBlank() && res!="null"){ val o=JSONObject(res); val list=mutableListOf<Sub>(); o.keys().forEach{ k-> val u=o.getJSONObject(k); val s=Sub(k, u.optString("username"), u.optString("whatsapp"), u.optString("pin"), u.optString("plan"), u.optInt("amount"), u.optString("expiry"), u.optBoolean("isUnlocked"), u.optString("receipt"), u.optBoolean("banned"), u.optBoolean("muted")); // AUTO LOCK IF EXPIRED
-            try{ val sdf=SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()); if(s.expiry.isNotBlank() && sdf.parse(s.expiry)?.before(Date())==true && s.isUnlocked){ s.isUnlocked=false; firebasePut("users/${s.key}/isUnlocked","false") } }catch(e:Exception){}
-            list.add(s) }; subs.clear(); subs.addAll(list) } }catch(e:Exception){} }
+        firebaseGet("users"){ res-> try{ if(res.isNotBlank() && res!="null"){ val o=JSONObject(res); val list=mutableListOf<Sub>(); o.keys().forEach{ k-> val u=o.getJSONObject(k); val s=Sub(k, u.optString("username"), u.optString("whatsapp"), u.optString("pin"), u.optString("plan"), u.optInt("amount"), u.optString("expiry"), u.optBoolean("isUnlocked"), u.optString("receipt"), u.optBoolean("banned"), u.optBoolean("muted")); try{ val sdf=SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()); if(s.expiry.isNotBlank() && sdf.parse(s.expiry)?.before(Date())==true && s.isUnlocked){ s.isUnlocked=false; firebasePut("users/${s.key}/isUnlocked","false") } }catch(e:Exception){}; list.add(s) }; subs.clear(); subs.addAll(list) } }catch(e:Exception){} }
         firebaseGet("alerts"){ r-> if(r.isNotBlank() && r!="null") alertMsg=r }
         firebaseGet("chat"){ r-> if(r.isNotBlank() && r!="null") liveChat=r }
+        firebaseGet("bibleDisplay"){ r-> if(r.isNotBlank() && r!="null" && r!="\"\""){ bibleText=r.replace("\"",""); if(bibleText.isNotBlank()) showBible=true } }
     }
     LaunchedEffect(Unit){ refreshSubs() }
     fun saveSub(s:Sub){ val j=JSONObject(); j.put("username",s.username); j.put("whatsapp",s.whatsapp); j.put("pin",s.pin); j.put("plan",s.plan); j.put("amount",s.amount); j.put("expiry",s.expiry); j.put("isUnlocked",s.isUnlocked); j.put("receipt",s.receipt); j.put("banned",s.banned); j.put("muted",s.muted); firebasePut("users/${s.key}", j.toString()) }
-    fun checkHate(text:String): Boolean { val low=text.lowercase(); val found=BAD_WORDS.find{ low.contains(it) }; if(found!=null && monitorOn){ alertMsg="⚠️ HATE/ILLEGAL ALERT: '$found' in: $text"; firebasePut("alerts", JSONObject.quote(alertMsg)); toast("ALERT: Hate speech detected!"); return true }; return false }
+    fun checkHate(text:String): Boolean { val low=text.lowercase(); val found=BAD_WORDS.find{ low.contains(it) }; if(found!=null && monitorOn){ alertMsg="ALERT: '$found' in: $text"; firebasePut("alerts", JSONObject.quote(alertMsg)); toast("ALERT: Hate speech detected!"); return true }; return false }
 
     if(screen=="DASH"){
         Column(Modifier.fillMaxSize().background(Color.Black).padding(16.dp).verticalScroll(rememberScrollState())){
             Text("JSTV ADMIN STUDIO", color=Color.Yellow, fontSize=26.sp, fontWeight=FontWeight.Bold)
             Text("Paybill $PAYBILL Acc $ACCOUNT | Subs: ${subs.size} | Live: ${if(isLive)"ON" else "OFF"}", color=Color.White, fontSize=12.sp)
             if(alertMsg.isNotBlank()) Text(alertMsg, color=Color.Red, fontWeight=FontWeight.Bold, fontSize=13.sp)
-            Button(onClick={ refreshSubs(); toast("Refreshed from Firebase") }, Modifier.fillMaxWidth()){ Text("🔄 REFRESH - LOAD NEW SIGNUPS") }
+            if(showBible && bibleText.isNotBlank()) Text("BIBLE: $bibleText", color=Color.Yellow, fontWeight=FontWeight.Bold)
+            Button(onClick={ refreshSubs(); toast("Refreshed") }, Modifier.fillMaxWidth()){ Text("REFRESH - LOAD NEW SIGNUPS") }
             Spacer(Modifier.height(10.dp))
-            Button(onClick={ screen="LIVE" }, Modifier.fillMaxWidth().height(54.dp), colors=ButtonDefaults.buttonColors(containerColor=Color.Red)){ Text("📹 GO TO LIVE STUDIO", color=Color.White, fontWeight=FontWeight.Bold) }
+            Button(onClick={ screen="LIVE" }, Modifier.fillMaxWidth().height(54.dp), colors=ButtonDefaults.buttonColors(containerColor=Color.Red)){ Text("GO TO LIVE STUDIO", color=Color.White, fontWeight=FontWeight.Bold) }
+            Spacer(Modifier.height(6.dp))
+            Button(onClick={ screen="TV" }, Modifier.fillMaxWidth().height(54.dp), colors=ButtonDefaults.buttonColors(containerColor=Color.Yellow)){ Text("TV / CHURCH BIG SCREEN", color=Color.Black, fontWeight=FontWeight.Bold) }
             Spacer(Modifier.height(6.dp))
             Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){ Button(onClick={screen="SUBS"}, Modifier.weight(1f)){ Text("SUBS ${subs.size}") }; Button(onClick={screen="RATES"}, Modifier.weight(1f)){ Text("RATES") }; Button(onClick={screen="INBOX"}, Modifier.weight(1f)){ Text("INBOX") } }
-            Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){ Button(onClick={screen="MONITOR"}, Modifier.weight(1f), colors=ButtonDefaults.buttonColors(containerColor=Color.Yellow)){ Text("LIVE MONITOR", color=Color.Black) }; Button(onClick={screen="PAY"}, Modifier.weight(1f)){ Text("PAYMENTS") } }
+            Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){ Button(onClick={screen="MONITOR"}, Modifier.weight(1f), colors=ButtonDefaults.buttonColors(containerColor=Color.Yellow)){ Text("LIVE MONITOR", color=Color.Black) }; Button(onClick={screen="PAY"}, Modifier.weight(1f)){ Text("PAYMENTS") }; Button(onClick={screen="BIBLE"}, Modifier.weight(1f), colors=ButtonDefaults.buttonColors(containerColor=Color.Green)){ Text("BIBLE") } }
             Spacer(Modifier.height(12.dp))
             Text("SUBSCRIBERS - AUTO SAVED FROM BROADCASTER:", color=Color.Yellow, fontWeight=FontWeight.Bold)
             if(subs.isEmpty()) Text("No subscribers yet. New signups will appear here automatically.", color=Color.Gray, fontSize=12.sp)
@@ -112,8 +135,8 @@ class MainActivity : ComponentActivity() {
                     Text("${s.username} | ${s.whatsapp} | ${s.plan} ${s.amount} KES", color=Color.White, fontWeight=FontWeight.Bold, fontSize=13.sp)
                     Text("Expiry: ${s.expiry} | ${if(s.isUnlocked)"UNLOCKED" else "LOCKED"} | Receipt: ${if(s.receipt.isBlank())"NONE" else s.receipt} | ${if(s.muted)"MUTED" else ""} ${if(s.banned)"BANNED" else ""}", color=if(s.isUnlocked) Color.Green else Color.Red, fontSize=12.sp)
                     Row(horizontalArrangement=Arrangement.spacedBy(4.dp)){
-                        Button(onClick={ s.isUnlocked=!s.isUnlocked; saveSub(s); toast("${s.username} ${if(s.isUnlocked)"UNLOCKED - Sent to Broadcaster" else "LOCKED"}") }, colors=ButtonDefaults.buttonColors(containerColor=if(s.isUnlocked) Color.Red else Color.Green)){ Text(if(s.isUnlocked)"LOCK" else "UNLOCK", fontSize=9.sp) }
-                        Button(onClick={ openWhatsApp(s.whatsapp, "Hi ${s.username}, JSTV Admin: $msgToSub") }){ Text("WHATSAPP", fontSize=9.sp) }
+                        Button(onClick={ s.isUnlocked=!s.isUnlocked; saveSub(s); toast("${s.username} ${if(s.isUnlocked)"UNLOCKED" else "LOCKED"}") }, colors=ButtonDefaults.buttonColors(containerColor=if(s.isUnlocked) Color.Red else Color.Green)){ Text(if(s.isUnlocked)"LOCK" else "UNLOCK", fontSize=9.sp) }
+                        Button(onClick={ openWhatsApp(s.whatsapp, "Hi ${s.username}, JSTV Admin: $inboxMsg") }){ Text("WHATSAPP", fontSize=9.sp) }
                         Button(onClick={ s.muted=!s.muted; saveSub(s); toast(if(s.muted)"Muted" else "Unmuted") }, colors=ButtonDefaults.buttonColors(containerColor=Color.Yellow)){ Text(if(s.muted)"UNMUTE" else "MUTE", fontSize=9.sp) }
                         Button(onClick={ s.banned=true; saveSub(s); firebasePut("liveControl","{\"action\":\"BAN\",\"user\":\"${s.username}\"}"); toast("${s.username} BANNED") }, colors=ButtonDefaults.buttonColors(containerColor=Color.Red)){ Text("BAN", fontSize=9.sp) }
                     }
@@ -132,9 +155,9 @@ class MainActivity : ComponentActivity() {
                 if(showLogo) Box(Modifier.offset{IntOffset(logoX.roundToInt(), logoY.roundToInt())}.pointerInput(Unit){detectDragGestures{_,d-> logoX+=d.x; logoY+=d.y}}.background(Color.Red).padding(8.dp)){ Text("JSTV $channelName", color=Color.White, fontWeight=FontWeight.Bold) }
                 if(showVerse) Box(Modifier.offset{IntOffset(verseX.roundToInt(), verseY.roundToInt())}.pointerInput(Unit){detectDragGestures{_,d-> verseX+=d.x; verseY+=d.y}}.background(Color.Black).padding(8.dp)){ Text("Verse: $verse", color=Color.Yellow) }
                 if(showTicker) Box(Modifier.offset{IntOffset(tickerX.roundToInt(), tickerY.roundToInt())}.pointerInput(Unit){detectDragGestures{_,d-> tickerX+=d.x; tickerY+=d.y}}.fillMaxWidth().background(Color.Yellow).padding(8.dp)){ Text("Ticker: $ticker", color=Color.Black) }
+                if(showBible && bibleText.isNotBlank()) Box(Modifier.offset{IntOffset(bibleX.roundToInt(), bibleY.roundToInt())}.pointerInput(Unit){detectDragGestures{_,d-> bibleX+=d.x; bibleY+=d.y}}.background(Color.White).padding(12.dp)){ Text("BIBLE: $bibleText", color=Color.Black, fontWeight=FontWeight.Bold) }
             }
-            Column(Modifier.align(Alignment.TopEnd).padding(10.dp)){ Text(if(isLive)"● LIVE" else "○ NOT LIVE", color=if(isLive) Color.Red else Color.White, fontWeight=FontWeight.Bold); Text("Mic: ${if(isMicOn)"ON" else "OFF"} | Cam: ${if(isFront)"FRONT" else "BACK"}", color=Color.White, fontSize=11.sp) }
-            // ONLY 3 BUTTONS ON MAIN SCREEN
+            Column(Modifier.align(Alignment.TopEnd).padding(10.dp)){ Text(if(isLive)"LIVE" else "NOT LIVE", color=if(isLive) Color.Red else Color.White, fontWeight=FontWeight.Bold); Text("Mic: ${if(isMicOn)"ON" else "OFF"} | Cam: ${if(isFront)"FRONT" else "BACK"}", color=Color.White, fontSize=11.sp) }
             Column(Modifier.align(Alignment.BottomCenter).padding(12.dp)){
                 if(isLive) Button(onClick={ isLive=false; firebasePut("liveControl","{\"action\":\"STOP\"}"); toast("Live Ended") }, Modifier.fillMaxWidth().height(54.dp), colors=ButtonDefaults.buttonColors(containerColor=Color.Red)){ Text("END LIVE", color=Color.White, fontWeight=FontWeight.Bold) }
                 else Button(onClick={ if(!hasPerm) permLauncher.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)) else { isLive=true; firebasePut("liveControl","{\"action\":\"LIVE\"}"); toast("You are LIVE!") } }, Modifier.fillMaxWidth().height(54.dp), colors=ButtonDefaults.buttonColors(containerColor=Color.Red)){ Text("GO LIVE", color=Color.White, fontWeight=FontWeight.Bold) }
@@ -152,6 +175,7 @@ class MainActivity : ComponentActivity() {
             Row(verticalAlignment=Alignment.CenterVertically){ Text("Show Logo", color=Color.White, modifier=Modifier.weight(1f)); Switch(checked=showLogo, onCheckedChange={showLogo=it}) }
             Row(verticalAlignment=Alignment.CenterVertically){ Text("Show Verse", color=Color.White, modifier=Modifier.weight(1f)); Switch(checked=showVerse, onCheckedChange={showVerse=it}) }
             Row(verticalAlignment=Alignment.CenterVertically){ Text("Show Ticker", color=Color.White, modifier=Modifier.weight(1f)); Switch(checked=showTicker, onCheckedChange={showTicker=it}) }
+            Row(verticalAlignment=Alignment.CenterVertically){ Text("Show Bible", color=Color.White, modifier=Modifier.weight(1f)); Switch(checked=showBible, onCheckedChange={showBible=it}) }
             Row(verticalAlignment=Alignment.CenterVertically){ Text("Live Monitor - Hate Speech Protection", color=Color.White, modifier=Modifier.weight(1f)); Switch(checked=monitorOn, onCheckedChange={monitorOn=it}) }
             Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){ Button(onClick={isFront=true}, Modifier.weight(1f)){ Text("FRONT CAM") }; Button(onClick={isFront=false}, Modifier.weight(1f)){ Text("BACK CAM") } }
             Button(onClick={isMicOn=!isMicOn}, Modifier.fillMaxWidth()){ Text(if(isMicOn)"MIC ON - Tap to Mute" else "MIC MUTED - Tap to Unmute") }
@@ -159,6 +183,27 @@ class MainActivity : ComponentActivity() {
             Spacer(Modifier.height(12.dp))
             Button(onClick={ screen="LIVE"; toast("Setup Saved - Items now on Main Screen - Drag them!") }, Modifier.fillMaxWidth().height(54.dp), colors=ButtonDefaults.buttonColors(containerColor=Color.Green)){ Text("OK - APPLY TO MAIN SCREEN", color=Color.White, fontWeight=FontWeight.Bold) }
             Button(onClick={ screen="LIVE" }, Modifier.fillMaxWidth()){ Text("BACK") }
+        }
+    }
+    if(screen=="TV"){
+        Box(Modifier.fillMaxSize().background(Color.Black)){
+            if(hasPerm && isLive) RealCamera(Modifier.fillMaxSize(), isFront)
+            else Box(Modifier.fillMaxSize(), contentAlignment=Alignment.Center){ Column(horizontalAlignment=Alignment.CenterHorizontally){ Text("JSTV - CHURCH TV", color=Color.Yellow, fontSize=30.sp, fontWeight=FontWeight.Bold); Text("Connect this phone to TV via HDMI / USB-C / Cast", color=Color.White, fontSize=13.sp, textAlign=TextAlign.Center); Text("Or Cast: Swipe Down > Screen Cast > Choose TV", color=Color.Cyan, fontSize=12.sp, textAlign=TextAlign.Center); Spacer(Modifier.height(10.dp)); Button(onClick={ try{ ctx.startActivity(Intent("android.settings.CAST_SETTINGS")) }catch(e:Exception){ toast("Open Settings > Connected Devices > Cast") } }, colors=ButtonDefaults.buttonColors(containerColor=Color.Yellow)){ Text("OPEN CAST TO TV", color=Color.Black, fontWeight=FontWeight.Bold) } } }
+            Column(Modifier.align(Alignment.TopCenter).padding(10.dp), horizontalAlignment=Alignment.CenterHorizontally){ Text("JSTV LIVE", color=Color.Red, fontSize=28.sp, fontWeight=FontWeight.Bold) }
+            if(showBible && bibleText.isNotBlank()) Box(Modifier.align(Alignment.Center).fillMaxWidth().padding(20.dp).background(Color.Black).padding(20.dp), contentAlignment=Alignment.Center){ Text("BIBLE: $bibleText", color=Color.Yellow, fontSize=28.sp, fontWeight=FontWeight.Bold, textAlign=TextAlign.Center) }
+            if(showTicker) Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().background(Color.Yellow).padding(12.dp), contentAlignment=Alignment.Center){ Text(ticker, color=Color.Black, fontSize=20.sp, fontWeight=FontWeight.Bold, textAlign=TextAlign.Center) }
+            Button(onClick={ screen="DASH" }, Modifier.align(Alignment.BottomEnd).padding(10.dp)){ Text("EXIT TV") }
+        }
+    }
+    if(screen=="BIBLE"){
+        Column(Modifier.fillMaxSize().background(Color.Black).padding(16.dp).verticalScroll(rememberScrollState())){
+            Text("BIBLE - TAP TO SHOW ON MAIN + TV", color=Color.Yellow, fontSize=22.sp, fontWeight=FontWeight.Bold)
+            OutlinedTextField(value=searchBible, onValueChange={searchBible=it}, label={Text("Search Bible e.g. John, Psalm...")}, modifier=Modifier.fillMaxWidth())
+            BIBLE_LIST.filter{ searchBible.isBlank() || it.contains(searchBible, ignoreCase=true) }.forEach{ v->
+                Column(Modifier.fillMaxWidth().background(Color.DarkGray).padding(10.dp)){ Text(v, color=Color.White, fontSize=13.sp); Button(onClick={ bibleText=v; showBible=true; firebasePut("bibleDisplay", JSONObject.quote(v)); toast("Bible showing on MAIN + TV!") }, Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=Color.Green)){ Text("SHOW THIS ON MAIN STUDIO + TV") } }; Spacer(Modifier.height(6.dp))
+            }
+            Button(onClick={ showBible=false; bibleText=""; firebasePut("bibleDisplay", JSONObject.quote("")); firebasePut("liveControl","{\"action\":\"BIBLE_CLEAR\"}"); toast("Bible cleared") }, Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=Color.Red)){ Text("CLEAR BIBLE FROM MAIN") }
+            Button(onClick={screen="DASH"}, Modifier.fillMaxWidth()){ Text("BACK") }
         }
     }
     if(screen=="SUBS"){
@@ -170,8 +215,7 @@ class MainActivity : ComponentActivity() {
             OutlinedTextField(value=adminReceipt, onValueChange={adminReceipt=it.uppercase()}, label={Text("Receipt Code from User")}, modifier=Modifier.fillMaxWidth())
             Button(onClick={
                 if(adminReceipt.length<6 || adminUser.isBlank()) toast("Enter Username + Receipt")
-                else { val t=subs.find{it.username.equals(adminUser, ignoreCase=true)}; if(t!=null){ t.isUnlocked=true; t.receipt=adminReceipt; // AUTO SET EXPIRY FROM PLAN
-                    val days=premiums.find{it.first.equals(t.plan, ignoreCase=true)}?.third ?: 30; val cal=Calendar.getInstance(); cal.add(Calendar.DAY_OF_YEAR, days); t.expiry=SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(cal.time); saveSub(t); toast("${t.username} UNLOCKED until ${t.expiry}"); adminReceipt=""; adminUser="" } else toast("User not found - Ask them to Sign Up first") }
+                else { val t=subs.find{it.username.equals(adminUser, ignoreCase=true)}; if(t!=null){ t.isUnlocked=true; t.receipt=adminReceipt; val days=premiums.find{it.first.equals(t.plan, ignoreCase=true)}?.third ?: 30; val cal=Calendar.getInstance(); cal.add(Calendar.DAY_OF_YEAR, days); t.expiry=SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(cal.time); saveSub(t); toast("${t.username} UNLOCKED until ${t.expiry}"); adminReceipt=""; adminUser="" } else toast("User not found - Ask them to Sign Up first") }
             }, Modifier.fillMaxWidth().height(54.dp), colors=ButtonDefaults.buttonColors(containerColor=Color.Green)){ Text("VERIFY & UNLOCK USER", color=Color.White, fontWeight=FontWeight.Bold) }
             Spacer(Modifier.height(10.dp))
             Text("STK PUSH:", color=Color.Cyan, fontWeight=FontWeight.Bold)
