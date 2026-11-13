@@ -14,9 +14,11 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -44,45 +46,16 @@ const val DB_URL = "https://jstv-studio-default-rtdb.firebaseio.com"
 const val PAYBILL = "516600"
 const val ACCOUNT = "5600935001"
 val BAD_WORDS = listOf("hate","kill","idiot","stupid","fuck","shit","bitch","tribal","murder","rape","terror")
-val BIBLE_LIST = listOf(
-"John 3:16 - For God so loved the world...",
-"Psalm 23:1 - The LORD is my shepherd, I lack nothing.",
-"Jeremiah 29:11 - For I know the plans I have for you...",
-"Philippians 4:13 - I can do all things through Christ...",
-"Romans 8:28 - All things work together for good...",
-"Isaiah 41:10 - Do not fear, for I am with you...",
-"Matthew 11:28 - Come to me, all who are weary...",
-"Psalm 46:1 - God is our refuge and strength...",
-"Proverbs 3:5 - Trust in the LORD with all your heart...",
-"Joshua 1:9 - Be strong and courageous...",
-"2 Timothy 1:7 - God has not given us a spirit of fear...",
-"Psalm 121:1 - I lift my eyes to the mountains...",
-"Matthew 5:14 - You are the light of the world...",
-"Romans 10:9 - If you confess with your mouth...",
-"John 14:6 - I am the way, the truth, and the life...",
-"Psalm 100:4 - Enter His gates with thanksgiving...",
-"Galatians 5:22 - The fruit of the Spirit is love...",
-"Hebrews 11:1 - Faith is confidence in what we hope for...",
-"1 Corinthians 13:4 - Love is patient, love is kind...",
-"Revelation 21:4 - He will wipe every tear..."
-)
-fun firebaseGet(path: String, onDone: (String) -> Unit) {
-    Thread { try { val c = URL("$DB_URL/$path.json").openConnection() as HttpURLConnection; c.connectTimeout = 8000; val r = c.inputStream.bufferedReader().readText(); onDone(r) } catch(e: Exception){ onDone("") } }.start()
-}
-fun firebasePut(path: String, json: String) {
-    Thread { try { val c = URL("$DB_URL/$path.json").openConnection() as HttpURLConnection; c.requestMethod="PUT"; c.doOutput=true; c.setRequestProperty("Content-Type","application/json"); c.outputStream.write(json.toByteArray()); c.inputStream.bufferedReader().readText() } catch(e: Exception){} }.start()
-}
-fun firebaseDelete(path: String) {
-    Thread { try { val c = URL("$DB_URL/$path.json").openConnection() as HttpURLConnection; c.requestMethod="DELETE"; c.inputStream.bufferedReader().readText() } catch(e: Exception){} }.start()
-}
+val BIBLE_LIST = listOf("John 3:16 - For God so loved the world...","Psalm 23:1 - The LORD is my shepherd, I lack nothing.","Jeremiah 29:11 - For I know the plans I have for you...","Philippians 4:13 - I can do all things through Christ...","Romans 8:28 - All things work together for good...","Isaiah 41:10 - Do not fear, for I am with you...","Matthew 11:28 - Come to me, all who are weary...","Psalm 46:1 - God is our refuge and strength...","Proverbs 3:5 - Trust in the LORD with all your heart...","Joshua 1:9 - Be strong and courageous...","2 Timothy 1:7 - God has not given us a spirit of fear...","Psalm 121:1 - I lift my eyes to the mountains...","Matthew 5:14 - You are the light of the world...","Romans 10:9 - If you confess with your mouth...","John 14:6 - I am the way, the truth, and the life...","Psalm 100:4 - Enter His gates with thanksgiving...","Galatians 5:22 - The fruit of the Spirit is love...","Hebrews 11:1 - Faith is confidence in what we hope for...","1 Corinthians 13:4 - Love is patient, love is kind...","Revelation 21:4 - He will wipe every tear...")
+fun firebaseGet(path: String, onDone: (String) -> Unit) { Thread { try { val c = URL("$DB_URL/$path.json").openConnection() as HttpURLConnection; c.connectTimeout = 8000; val r = c.inputStream.bufferedReader().readText(); onDone(r) } catch(e: Exception){ onDone("") } }.start() }
+fun firebasePut(path: String, json: String) { Thread { try { val c = URL("$DB_URL/$path.json").openConnection() as HttpURLConnection; c.requestMethod="PUT"; c.doOutput=true; c.setRequestProperty("Content-Type","application/json"); c.outputStream.write(json.toByteArray()); c.inputStream.bufferedReader().readText() } catch(e: Exception){} }.start() }
+fun firebaseDelete(path: String) { Thread { try { val c = URL("$DB_URL/$path.json").openConnection() as HttpURLConnection; c.requestMethod="DELETE"; c.inputStream.bufferedReader().readText() } catch(e: Exception){} }.start() }
 data class Sub(var key: String="", var username: String="", var whatsapp: String="", var pin: String="", var plan: String="", var amount: Int=0, var expiry: String="", var isUnlocked: Boolean=false, var receipt: String="", var banned: Boolean=false, var muted: Boolean=false)
-
-class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) { super.onCreate(savedInstanceState); setContent { MaterialTheme { AdminApp() } } }
-}
-@Composable fun RealCamera(modifier: Modifier=Modifier, isFront: Boolean) {
-    val lc = LocalLifecycleOwner.current
-    AndroidView(factory={ c -> val pv=PreviewView(c); try{ val f=ProcessCameraProvider.getInstance(c); f.addListener({ try{ val p=f.get(); val pr=Preview.Builder().build().also{it.setSurfaceProvider(pv.surfaceProvider)}; p.unbindAll(); p.bindToLifecycle(lc, if(isFront) CameraSelector.DEFAULT_FRONT_CAMERA else CameraSelector.DEFAULT_BACK_CAMERA, pr)}catch(e:Exception){} }, ContextCompat.getMainExecutor(c))}catch(e:Exception){}; pv }, modifier=modifier)
+class MainActivity : ComponentActivity() { override fun onCreate(savedInstanceState: Bundle?) { super.onCreate(savedInstanceState); setContent { MaterialTheme { AdminApp() } } } }
+@Composable fun RealCamera(modifier: Modifier=Modifier, isFront: Boolean) { val lc = LocalLifecycleOwner.current; AndroidView(factory={ c -> val pv=PreviewView(c); try{ val f=ProcessCameraProvider.getInstance(c); f.addListener({ try{ val p=f.get(); val pr=Preview.Builder().build().also{it.setSurfaceProvider(pv.surfaceProvider)}; p.unbindAll(); p.bindToLifecycle(lc, if(isFront) CameraSelector.DEFAULT_FRONT_CAMERA else CameraSelector.DEFAULT_BACK_CAMERA, pr)}catch(e:Exception){} }, ContextCompat.getMainExecutor(c))}catch(e:Exception){}; pv }, modifier=modifier) }
+// VISIBLE TYPING COLORS - WHITE BOX, BLACK TEXT, YELLOW BORDER
+@Composable fun VisibleField(value: String, onChange: (String)->Unit, label: String, modifier: Modifier=Modifier, minLines: Int=1){
+    OutlinedTextField(value=value, onValueChange=onChange, label={Text(label, color=Color.Black, fontWeight=FontWeight.Bold)}, placeholder={Text(label, color=Color.DarkGray)}, textStyle=androidx.compose.ui.text.TextStyle(color=Color.Black, fontSize=18.sp, fontWeight=FontWeight.Bold), modifier=modifier.background(Color.White, RoundedCornerShape(8.dp)).border(3.dp, Color.Yellow, RoundedCornerShape(8.dp)), minLines=minLines, colors=OutlinedTextFieldDefaults.colors(focusedContainerColor=Color.White, unfocusedContainerColor=Color.White, focusedTextColor=Color.Black, unfocusedTextColor=Color.Black, cursorColor=Color.Black, focusedBorderColor=Color.Yellow, unfocusedBorderColor=Color.Yellow, focusedLabelColor=Color.Black, unfocusedLabelColor=Color.Black, focusedPlaceholderColor=Color.DarkGray, unfocusedPlaceholderColor=Color.DarkGray))
 }
 
 @Composable fun AdminApp(){
@@ -97,6 +70,8 @@ class MainActivity : ComponentActivity() {
     val subs=remember{ mutableStateListOf<Sub>() }
     val premiums=remember{ mutableStateListOf<Triple<String,Int,Int>>(Triple("Daily",200,1), Triple("Monthly",1000,30), Triple("3 Months",2500,90), Triple("Year",8000,365)) }
     var inboxMsg by remember{ mutableStateOf("") }
+    var chatInput by remember{ mutableStateOf("") }
+    var chatDisplay by remember{ mutableStateOf("No messages yet. Type below to talk to Broadcaster.") }
     var newPremiumName by remember{ mutableStateOf("")}; var newPremiumPrice by remember{ mutableStateOf("")}; var newPremiumDays by remember{ mutableStateOf("")}
     var adminReceipt by remember{ mutableStateOf("")}; var adminUser by remember{ mutableStateOf("")}
     var liveChat by remember{ mutableStateOf("")}; var alertMsg by remember{ mutableStateOf("")}
@@ -106,13 +81,25 @@ class MainActivity : ComponentActivity() {
     fun refreshSubs(){
         firebaseGet("users"){ res-> try{ if(res.isNotBlank() && res!="null"){ val o=JSONObject(res); val list=mutableListOf<Sub>(); o.keys().forEach{ k-> val u=o.getJSONObject(k); val s=Sub(k, u.optString("username"), u.optString("whatsapp"), u.optString("pin"), u.optString("plan"), u.optInt("amount"), u.optString("expiry"), u.optBoolean("isUnlocked"), u.optString("receipt"), u.optBoolean("banned"), u.optBoolean("muted")); try{ val sdf=SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()); if(s.expiry.isNotBlank() && sdf.parse(s.expiry)?.before(Date())==true && s.isUnlocked){ s.isUnlocked=false; firebasePut("users/${s.key}/isUnlocked","false") } }catch(e:Exception){}; list.add(s) }; subs.clear(); subs.addAll(list) } }catch(e:Exception){} }
         firebaseGet("alerts"){ r-> if(r.isNotBlank() && r!="null") alertMsg=r }
-        firebaseGet("chat"){ r-> if(r.isNotBlank() && r!="null") liveChat=r }
+        firebaseGet("chat"){ r-> if(r.isNotBlank() && r!="null"){ liveChat=r.replace("\"",""); chatDisplay=liveChat } }
         firebaseGet("bibleDisplay"){ r-> if(r.isNotBlank() && r!="null" && r!="\"\""){ bibleText=r.replace("\"",""); if(bibleText.isNotBlank()) showBible=true } }
     }
     LaunchedEffect(Unit){ refreshSubs() }
     fun saveSub(s:Sub){ val j=JSONObject(); j.put("username",s.username); j.put("whatsapp",s.whatsapp); j.put("pin",s.pin); j.put("plan",s.plan); j.put("amount",s.amount); j.put("expiry",s.expiry); j.put("isUnlocked",s.isUnlocked); j.put("receipt",s.receipt); j.put("banned",s.banned); j.put("muted",s.muted); firebasePut("users/${s.key}", j.toString()) }
     fun checkHate(text:String): Boolean { val low=text.lowercase(); val found=BAD_WORDS.find{ low.contains(it) }; if(found!=null && monitorOn){ alertMsg="ALERT: '$found' in: $text"; firebasePut("alerts", JSONObject.quote(alertMsg)); toast("ALERT: Hate speech detected!"); return true }; return false }
-
+    @Composable fun TypingBox(){
+        Column(Modifier.fillMaxWidth().background(Color.Yellow).padding(10.dp)){
+            Text("💬 LIVE CHAT - TYPE HERE - BROADCASTER WILL SEE IT", color=Color.Black, fontWeight=FontWeight.Bold, fontSize=14.sp)
+            Box(Modifier.fillMaxWidth().background(Color.White).padding(10.dp)){ Text(chatDisplay, color=Color.Black, fontSize=16.sp, fontWeight=FontWeight.Bold) }
+            Spacer(Modifier.height(6.dp))
+            Row(Modifier.fillMaxWidth(), verticalAlignment=Alignment.CenterVertically){
+                VisibleField(value=chatInput, onChange={chatInput=it}, label="Type message here...", modifier=Modifier.weight(1f))
+                Spacer(Modifier.width(6.dp))
+                Button(onClick={ if(chatInput.isBlank()) toast("Type message first") else if(checkHate(chatInput)) toast("Blocked: Hate speech") else { val full="ADMIN: $chatInput"; firebasePut("chat", JSONObject.quote(full)); firebasePut("adminMessage", JSONObject.quote(chatInput)); chatDisplay=full; chatInput=""; toast("Sent to Broadcaster!") } }, colors=ButtonDefaults.buttonColors(containerColor=Color.Green), modifier=Modifier.height(56.dp)){ Text("SEND", color=Color.White, fontWeight=FontWeight.Bold, fontSize=16.sp) }
+            }
+            Button(onClick={ refreshSubs(); toast("Chat Refreshed") }, Modifier.fillMaxWidth()){ Text("REFRESH CHAT") }
+        }
+    }
     if(screen=="DASH"){
         Column(Modifier.fillMaxSize().background(Color.Black).padding(16.dp).verticalScroll(rememberScrollState())){
             Text("JSTV ADMIN STUDIO", color=Color.Yellow, fontSize=26.sp, fontWeight=FontWeight.Bold)
@@ -128,8 +115,10 @@ class MainActivity : ComponentActivity() {
             Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){ Button(onClick={screen="SUBS"}, Modifier.weight(1f)){ Text("SUBS ${subs.size}") }; Button(onClick={screen="RATES"}, Modifier.weight(1f)){ Text("RATES") }; Button(onClick={screen="INBOX"}, Modifier.weight(1f)){ Text("INBOX") } }
             Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){ Button(onClick={screen="MONITOR"}, Modifier.weight(1f), colors=ButtonDefaults.buttonColors(containerColor=Color.Yellow)){ Text("LIVE MONITOR", color=Color.Black) }; Button(onClick={screen="PAY"}, Modifier.weight(1f)){ Text("PAYMENTS") }; Button(onClick={screen="BIBLE"}, Modifier.weight(1f), colors=ButtonDefaults.buttonColors(containerColor=Color.Green)){ Text("BIBLE") } }
             Spacer(Modifier.height(12.dp))
+            TypingBox()
+            Spacer(Modifier.height(12.dp))
             Text("SUBSCRIBERS - AUTO SAVED FROM BROADCASTER:", color=Color.Yellow, fontWeight=FontWeight.Bold)
-            if(subs.isEmpty()) Text("No subscribers yet. New signups will appear here automatically.", color=Color.Gray, fontSize=12.sp)
+            if(subs.isEmpty()) Text("No subscribers yet.", color=Color.Gray, fontSize=12.sp)
             subs.forEach{ s->
                 Column(Modifier.fillMaxWidth().background(if(s.banned) Color.Red else Color.DarkGray).padding(10.dp)){
                     Text("${s.username} | ${s.whatsapp} | ${s.plan} ${s.amount} KES", color=Color.White, fontWeight=FontWeight.Bold, fontSize=13.sp)
@@ -144,7 +133,7 @@ class MainActivity : ComponentActivity() {
             }
             Spacer(Modifier.height(10.dp))
             Text("SEND MESSAGE TO BROADCASTER / SUBSCRIBER:", color=Color.Yellow, fontWeight=FontWeight.Bold)
-            OutlinedTextField(value=inboxMsg, onValueChange={inboxMsg=it}, label={Text("Type real message...")}, modifier=Modifier.fillMaxWidth(), minLines=2)
+            VisibleField(value=inboxMsg, onChange={inboxMsg=it}, label="Type real message...", modifier=Modifier.fillMaxWidth(), minLines=2)
             Button(onClick={ if(inboxMsg.isBlank()) toast("Type message") else { firebasePut("adminMessage", JSONObject.quote(inboxMsg)); toast("Message sent to ALL Broadcasters!"); inboxMsg="" } }, Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF7C4DFF))){ Text("SEND TO BROADCASTERS") }
         }
     }
@@ -159,6 +148,7 @@ class MainActivity : ComponentActivity() {
             }
             Column(Modifier.align(Alignment.TopEnd).padding(10.dp)){ Text(if(isLive)"LIVE" else "NOT LIVE", color=if(isLive) Color.Red else Color.White, fontWeight=FontWeight.Bold); Text("Mic: ${if(isMicOn)"ON" else "OFF"} | Cam: ${if(isFront)"FRONT" else "BACK"}", color=Color.White, fontSize=11.sp) }
             Column(Modifier.align(Alignment.BottomCenter).padding(12.dp)){
+                Box(Modifier.fillMaxWidth().background(Color.Yellow).padding(8.dp)){ Column{ Text("💬 CHAT: $chatDisplay", color=Color.Black, fontSize=14.sp, fontWeight=FontWeight.Bold); Row(verticalAlignment=Alignment.CenterVertically){ VisibleField(value=chatInput, onChange={chatInput=it}, label="Type here...", modifier=Modifier.weight(1f)); Spacer(Modifier.width(6.dp)); Button(onClick={ if(chatInput.isNotBlank()){ val full="ADMIN: $chatInput"; firebasePut("chat", JSONObject.quote(full)); firebasePut("adminMessage", JSONObject.quote(chatInput)); chatDisplay=full; chatInput=""; toast("Sent!") } }){ Text("SEND") } } } }
                 if(isLive) Button(onClick={ isLive=false; firebasePut("liveControl","{\"action\":\"STOP\"}"); toast("Live Ended") }, Modifier.fillMaxWidth().height(54.dp), colors=ButtonDefaults.buttonColors(containerColor=Color.Red)){ Text("END LIVE", color=Color.White, fontWeight=FontWeight.Bold) }
                 else Button(onClick={ if(!hasPerm) permLauncher.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)) else { isLive=true; firebasePut("liveControl","{\"action\":\"LIVE\"}"); toast("You are LIVE!") } }, Modifier.fillMaxWidth().height(54.dp), colors=ButtonDefaults.buttonColors(containerColor=Color.Red)){ Text("GO LIVE", color=Color.White, fontWeight=FontWeight.Bold) }
                 Spacer(Modifier.height(6.dp))
@@ -168,10 +158,10 @@ class MainActivity : ComponentActivity() {
     }
     if(screen=="SETUP"){
         Column(Modifier.fillMaxSize().background(Color.Black).padding(16.dp).verticalScroll(rememberScrollState())){
-            Text("LIVE SETUP - ALL SETTINGS HERE", color=Color.Yellow, fontSize=22.sp, fontWeight=FontWeight.Bold)
-            OutlinedTextField(value=channelName, onValueChange={channelName=it}, label={Text("Channel Name")}, modifier=Modifier.fillMaxWidth())
-            OutlinedTextField(value=ticker, onValueChange={ticker=it}, label={Text("Ticker Text")}, modifier=Modifier.fillMaxWidth())
-            OutlinedTextField(value=verse, onValueChange={verse=it}, label={Text("Verse")}, modifier=Modifier.fillMaxWidth())
+            Text("LIVE SETUP", color=Color.Yellow, fontSize=22.sp, fontWeight=FontWeight.Bold)
+            VisibleField(value=channelName, onChange={channelName=it}, label="Channel Name", modifier=Modifier.fillMaxWidth())
+            VisibleField(value=ticker, onChange={ticker=it}, label="Ticker Text", modifier=Modifier.fillMaxWidth())
+            VisibleField(value=verse, onChange={verse=it}, label="Verse", modifier=Modifier.fillMaxWidth())
             Row(verticalAlignment=Alignment.CenterVertically){ Text("Show Logo", color=Color.White, modifier=Modifier.weight(1f)); Switch(checked=showLogo, onCheckedChange={showLogo=it}) }
             Row(verticalAlignment=Alignment.CenterVertically){ Text("Show Verse", color=Color.White, modifier=Modifier.weight(1f)); Switch(checked=showVerse, onCheckedChange={showVerse=it}) }
             Row(verticalAlignment=Alignment.CenterVertically){ Text("Show Ticker", color=Color.White, modifier=Modifier.weight(1f)); Switch(checked=showTicker, onCheckedChange={showTicker=it}) }
@@ -180,25 +170,24 @@ class MainActivity : ComponentActivity() {
             Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){ Button(onClick={isFront=true}, Modifier.weight(1f)){ Text("FRONT CAM") }; Button(onClick={isFront=false}, Modifier.weight(1f)){ Text("BACK CAM") } }
             Button(onClick={isMicOn=!isMicOn}, Modifier.fillMaxWidth()){ Text(if(isMicOn)"MIC ON - Tap to Mute" else "MIC MUTED - Tap to Unmute") }
             Button(onClick={ permLauncher.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)) }, Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=Color.Red)){ Text("ALLOW CAMERA + MIC") }
-            Spacer(Modifier.height(12.dp))
-            Button(onClick={ screen="LIVE"; toast("Setup Saved - Items now on Main Screen - Drag them!") }, Modifier.fillMaxWidth().height(54.dp), colors=ButtonDefaults.buttonColors(containerColor=Color.Green)){ Text("OK - APPLY TO MAIN SCREEN", color=Color.White, fontWeight=FontWeight.Bold) }
+            Button(onClick={ screen="LIVE"; toast("Setup Saved!") }, Modifier.fillMaxWidth().height(54.dp), colors=ButtonDefaults.buttonColors(containerColor=Color.Green)){ Text("OK - APPLY TO MAIN SCREEN", color=Color.White, fontWeight=FontWeight.Bold) }
             Button(onClick={ screen="LIVE" }, Modifier.fillMaxWidth()){ Text("BACK") }
         }
     }
     if(screen=="TV"){
         Box(Modifier.fillMaxSize().background(Color.Black)){
             if(hasPerm && isLive) RealCamera(Modifier.fillMaxSize(), isFront)
-            else Box(Modifier.fillMaxSize(), contentAlignment=Alignment.Center){ Column(horizontalAlignment=Alignment.CenterHorizontally){ Text("JSTV - CHURCH TV", color=Color.Yellow, fontSize=30.sp, fontWeight=FontWeight.Bold); Text("Connect this phone to TV via HDMI / USB-C / Cast", color=Color.White, fontSize=13.sp, textAlign=TextAlign.Center); Text("Or Cast: Swipe Down > Screen Cast > Choose TV", color=Color.Cyan, fontSize=12.sp, textAlign=TextAlign.Center); Spacer(Modifier.height(10.dp)); Button(onClick={ try{ ctx.startActivity(Intent("android.settings.CAST_SETTINGS")) }catch(e:Exception){ toast("Open Settings > Connected Devices > Cast") } }, colors=ButtonDefaults.buttonColors(containerColor=Color.Yellow)){ Text("OPEN CAST TO TV", color=Color.Black, fontWeight=FontWeight.Bold) } } }
+            else Box(Modifier.fillMaxSize(), contentAlignment=Alignment.Center){ Column(horizontalAlignment=Alignment.CenterHorizontally){ Text("JSTV - CHURCH TV", color=Color.Yellow, fontSize=30.sp, fontWeight=FontWeight.Bold); Text("Connect this phone to TV via HDMI / USB-C / Cast", color=Color.White, fontSize=13.sp, textAlign=TextAlign.Center); Button(onClick={ try{ ctx.startActivity(Intent("android.settings.CAST_SETTINGS")) }catch(e:Exception){ toast("Open Settings > Connected Devices > Cast") } }, colors=ButtonDefaults.buttonColors(containerColor=Color.Yellow)){ Text("OPEN CAST TO TV", color=Color.Black, fontWeight=FontWeight.Bold) } } }
             Column(Modifier.align(Alignment.TopCenter).padding(10.dp), horizontalAlignment=Alignment.CenterHorizontally){ Text("JSTV LIVE", color=Color.Red, fontSize=28.sp, fontWeight=FontWeight.Bold) }
             if(showBible && bibleText.isNotBlank()) Box(Modifier.align(Alignment.Center).fillMaxWidth().padding(20.dp).background(Color.Black).padding(20.dp), contentAlignment=Alignment.Center){ Text("BIBLE: $bibleText", color=Color.Yellow, fontSize=28.sp, fontWeight=FontWeight.Bold, textAlign=TextAlign.Center) }
-            if(showTicker) Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().background(Color.Yellow).padding(12.dp), contentAlignment=Alignment.Center){ Text(ticker, color=Color.Black, fontSize=20.sp, fontWeight=FontWeight.Bold, textAlign=TextAlign.Center) }
+            if(showTicker) Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().background(Color.Yellow).padding(12.dp), contentAlignment=Alignment.Center){ Text(ticker, color=Color.Black, fontSize=20.sp, fontWeight=FontWeight.Bold) }
             Button(onClick={ screen="DASH" }, Modifier.align(Alignment.BottomEnd).padding(10.dp)){ Text("EXIT TV") }
         }
     }
     if(screen=="BIBLE"){
         Column(Modifier.fillMaxSize().background(Color.Black).padding(16.dp).verticalScroll(rememberScrollState())){
             Text("BIBLE - TAP TO SHOW ON MAIN + TV", color=Color.Yellow, fontSize=22.sp, fontWeight=FontWeight.Bold)
-            OutlinedTextField(value=searchBible, onValueChange={searchBible=it}, label={Text("Search Bible e.g. John, Psalm...")}, modifier=Modifier.fillMaxWidth())
+            VisibleField(value=searchBible, onChange={searchBible=it}, label="Search Bible e.g. John, Psalm...", modifier=Modifier.fillMaxWidth())
             BIBLE_LIST.filter{ searchBible.isBlank() || it.contains(searchBible, ignoreCase=true) }.forEach{ v->
                 Column(Modifier.fillMaxWidth().background(Color.DarkGray).padding(10.dp)){ Text(v, color=Color.White, fontSize=13.sp); Button(onClick={ bibleText=v; showBible=true; firebasePut("bibleDisplay", JSONObject.quote(v)); toast("Bible showing on MAIN + TV!") }, Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=Color.Green)){ Text("SHOW THIS ON MAIN STUDIO + TV") } }; Spacer(Modifier.height(6.dp))
             }
@@ -211,67 +200,47 @@ class MainActivity : ComponentActivity() {
             Text("SUBSCRIBERS + VERIFY PAYMENT", color=Color.Yellow, fontSize=22.sp, fontWeight=FontWeight.Bold)
             Text("Only unlock AFTER you check YOUR M-PESA SMS. Paybill $PAYBILL Acc $ACCOUNT", color=Color.Red, fontSize=12.sp, fontWeight=FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
-            OutlinedTextField(value=adminUser, onValueChange={adminUser=it}, label={Text("Username to Unlock")}, modifier=Modifier.fillMaxWidth())
-            OutlinedTextField(value=adminReceipt, onValueChange={adminReceipt=it.uppercase()}, label={Text("Receipt Code from User")}, modifier=Modifier.fillMaxWidth())
-            Button(onClick={
-                if(adminReceipt.length<6 || adminUser.isBlank()) toast("Enter Username + Receipt")
-                else { val t=subs.find{it.username.equals(adminUser, ignoreCase=true)}; if(t!=null){ t.isUnlocked=true; t.receipt=adminReceipt; val days=premiums.find{it.first.equals(t.plan, ignoreCase=true)}?.third ?: 30; val cal=Calendar.getInstance(); cal.add(Calendar.DAY_OF_YEAR, days); t.expiry=SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(cal.time); saveSub(t); toast("${t.username} UNLOCKED until ${t.expiry}"); adminReceipt=""; adminUser="" } else toast("User not found - Ask them to Sign Up first") }
-            }, Modifier.fillMaxWidth().height(54.dp), colors=ButtonDefaults.buttonColors(containerColor=Color.Green)){ Text("VERIFY & UNLOCK USER", color=Color.White, fontWeight=FontWeight.Bold) }
+            VisibleField(value=adminUser, onChange={adminUser=it}, label="Username to Unlock", modifier=Modifier.fillMaxWidth())
+            VisibleField(value=adminReceipt, onChange={adminReceipt=it.uppercase()}, label="Receipt Code from User", modifier=Modifier.fillMaxWidth())
+            Button(onClick={ if(adminReceipt.length<6 || adminUser.isBlank()) toast("Enter Username + Receipt") else { val t=subs.find{it.username.equals(adminUser, ignoreCase=true)}; if(t!=null){ t.isUnlocked=true; t.receipt=adminReceipt; val days=premiums.find{it.first.equals(t.plan, ignoreCase=true)}?.third ?: 30; val cal=Calendar.getInstance(); cal.add(Calendar.DAY_OF_YEAR, days); t.expiry=SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(cal.time); saveSub(t); toast("${t.username} UNLOCKED until ${t.expiry}"); adminReceipt=""; adminUser="" } else toast("User not found") } }, Modifier.fillMaxWidth().height(54.dp), colors=ButtonDefaults.buttonColors(containerColor=Color.Green)){ Text("VERIFY & UNLOCK USER", color=Color.White, fontWeight=FontWeight.Bold) }
             Spacer(Modifier.height(10.dp))
-            Text("STK PUSH:", color=Color.Cyan, fontWeight=FontWeight.Bold)
-            Text("1. Open M-PESA Business App\n2. Send STK Push to user number\n3. User gets REAL Safaricom PIN popup\n4. OR User pays DIRECT to Paybill $PAYBILL Acc $ACCOUNT", color=Color.Gray, fontSize=11.sp)
+            Text("STK PUSH: Open M-PESA Business App, send STK Push, or user pays DIRECT to Paybill $PAYBILL Acc $ACCOUNT", color=Color.Gray, fontSize=11.sp)
             Button(onClick={ if(adminUser.isBlank()) toast("Enter Username first") else { val t=subs.find{it.username.equals(adminUser, ignoreCase=true)}; if(t!=null){ openWhatsApp(t.whatsapp, "Hi ${t.username}, STK PUSH for ${t.plan} - ${t.amount} KES. Watch for Safaricom PIN popup. Or pay DIRECT: Paybill $PAYBILL Acc $ACCOUNT"); toast("Now push from M-PESA Business App") } else toast("User not found") } }, Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=Color.Cyan)){ Text("SEND STK PUSH TO THIS USER") }
-            Spacer(Modifier.height(10.dp))
-            Text("DELETE / AUTHORIZE DELETE:", color=Color.Red, fontWeight=FontWeight.Bold)
-            Button(onClick={ if(adminUser.isBlank()) toast("Enter Username to delete") else { val t=subs.find{it.username.equals(adminUser, ignoreCase=true)}; if(t!=null){ firebaseDelete("users/${t.key}"); subs.remove(t); toast("Deleted ${t.username} - Admin Authorized") } else toast("User not found") } }, Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=Color.Red)){ Text("ADMIN AUTHORIZE DELETE SUBSCRIBER") }
+            Button(onClick={ if(adminUser.isBlank()) toast("Enter Username to delete") else { val t=subs.find{it.username.equals(adminUser, ignoreCase=true)}; if(t!=null){ firebaseDelete("users/${t.key}"); subs.remove(t); toast("Deleted ${t.username}") } else toast("User not found") } }, Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=Color.Red)){ Text("ADMIN AUTHORIZE DELETE SUBSCRIBER") }
             Button(onClick={screen="DASH"}, Modifier.fillMaxWidth()){ Text("BACK") }
         }
     }
     if(screen=="RATES"){
         Column(Modifier.fillMaxSize().background(Color.Black).padding(16.dp).verticalScroll(rememberScrollState())){
-            Text("RATES + PREMIUM SETS - ADMIN CAN CHANGE", color=Color.Yellow, fontSize=22.sp, fontWeight=FontWeight.Bold)
-            Text("Changing here updates Broadcaster instantly via Firebase.", color=Color.Gray, fontSize=12.sp)
-            premiums.forEachIndexed{ idx,p->
-                Row(Modifier.fillMaxWidth().background(Color.DarkGray).padding(10.dp)){ Text("${p.first} - ${p.second} KES - ${p.third} Days", color=Color.White, modifier=Modifier.weight(1f), fontWeight=FontWeight.Bold); Button(onClick={ premiums.removeAt(idx); firebasePut("rates", JSONObject.quote(premiums.joinToString("|"){ "${it.first}:${it.second}:${it.third}" })); toast("Deleted ${p.first}") }, colors=ButtonDefaults.buttonColors(containerColor=Color.Red)){ Text("DEL", fontSize=9.sp) } }; Spacer(Modifier.height(6.dp)) }
+            Text("RATES + PREMIUM SETS", color=Color.Yellow, fontSize=22.sp, fontWeight=FontWeight.Bold)
+            premiums.forEachIndexed{ idx,p-> Row(Modifier.fillMaxWidth().background(Color.DarkGray).padding(10.dp)){ Text("${p.first} - ${p.second} KES - ${p.third} Days", color=Color.White, modifier=Modifier.weight(1f), fontWeight=FontWeight.Bold); Button(onClick={ premiums.removeAt(idx); firebasePut("rates", JSONObject.quote(premiums.joinToString("|"){ "${it.first}:${it.second}:${it.third}" })); toast("Deleted ${p.first}") }, colors=ButtonDefaults.buttonColors(containerColor=Color.Red)){ Text("DEL", fontSize=9.sp) } }; Spacer(Modifier.height(6.dp)) }
             Spacer(Modifier.height(10.dp))
-            OutlinedTextField(value=newPremiumName, onValueChange={newPremiumName=it}, label={Text("Premium Name e.g. Weekly")}, modifier=Modifier.fillMaxWidth())
-            OutlinedTextField(value=newPremiumPrice, onValueChange={newPremiumPrice=it}, label={Text("Price KES")}, modifier=Modifier.fillMaxWidth())
-            OutlinedTextField(value=newPremiumDays, onValueChange={newPremiumDays=it}, label={Text("Days")}, modifier=Modifier.fillMaxWidth())
-            Button(onClick={ if(newPremiumName.isNotBlank() && (newPremiumPrice.toIntOrNull()?:0)>0){ val np=Triple(newPremiumName, newPremiumPrice.toInt(), newPremiumDays.toIntOrNull()?:30); premiums.add(np); firebasePut("rates", JSONObject.quote(premiums.joinToString("|"){ "${it.first}:${it.second}:${it.third}" })); toast("Premium ${newPremiumName} added + Sent to Broadcaster"); newPremiumName=""; newPremiumPrice=""; newPremiumDays="" } else toast("Enter Name + Real Price") }, Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=Color.Green)){ Text("ADD NEW PREMIUM SET") }
+            VisibleField(value=newPremiumName, onChange={newPremiumName=it}, label="Premium Name e.g. Weekly", modifier=Modifier.fillMaxWidth())
+            VisibleField(value=newPremiumPrice, onChange={newPremiumPrice=it}, label="Price KES", modifier=Modifier.fillMaxWidth())
+            VisibleField(value=newPremiumDays, onChange={newPremiumDays=it}, label="Days", modifier=Modifier.fillMaxWidth())
+            Button(onClick={ if(newPremiumName.isNotBlank() && (newPremiumPrice.toIntOrNull()?:0)>0){ val np=Triple(newPremiumName, newPremiumPrice.toInt(), newPremiumDays.toIntOrNull()?:30); premiums.add(np); firebasePut("rates", JSONObject.quote(premiums.joinToString("|"){ "${it.first}:${it.second}:${it.third}" })); toast("Premium added"); newPremiumName=""; newPremiumPrice=""; newPremiumDays="" } else toast("Enter Name + Real Price") }, Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=Color.Green)){ Text("ADD NEW PREMIUM SET") }
             Button(onClick={screen="DASH"}, Modifier.fillMaxWidth()){ Text("BACK") }
         }
     }
-    if(screen=="INBOX"){
-        Column(Modifier.fillMaxSize().background(Color.Black).padding(16.dp).verticalScroll(rememberScrollState())){
-            Text("INBOX - SEND TO BROADCASTERS", color=Color.Yellow, fontSize=22.sp, fontWeight=FontWeight.Bold)
-            OutlinedTextField(value=inboxMsg, onValueChange={inboxMsg=it}, label={Text("Real message...")}, modifier=Modifier.fillMaxWidth(), minLines=3)
-            Button(onClick={ if(inboxMsg.isBlank()) toast("Type message") else { if(checkHate(inboxMsg)) toast("Blocked: Hate speech") else { firebasePut("adminMessage", JSONObject.quote(inboxMsg)); toast("Sent to ALL Broadcasters"); inboxMsg="" } } }, Modifier.fillMaxWidth().height(54.dp), colors=ButtonDefaults.buttonColors(containerColor=Color(0xFF7C4DFF))){ Text("SEND MESSAGE") }
-            Button(onClick={screen="DASH"}, Modifier.fillMaxWidth()){ Text("BACK") }
-        }
-    }
+    if(screen=="INBOX"){ Column(Modifier.fillMaxSize().background(Color.Black).padding(16.dp).verticalScroll(rememberScrollState())){ Text("INBOX - SEND TO BROADCASTERS", color=Color.Yellow, fontSize=22.sp, fontWeight=FontWeight.Bold); TypingBox(); Button(onClick={screen="DASH"}, Modifier.fillMaxWidth()){ Text("BACK") } } }
     if(screen=="MONITOR"){
         Column(Modifier.fillMaxSize().background(Color.Black).padding(16.dp).verticalScroll(rememberScrollState())){
             Text("LIVE MONITOR - PROTECT JSTV", color=Color.Yellow, fontSize=22.sp, fontWeight=FontWeight.Bold)
-            Text("Keyword Alert: hate, kill, tribal, etc. Viewer Reports appear here.", color=Color.Gray, fontSize=12.sp)
             if(alertMsg.isNotBlank()) Text(alertMsg, color=Color.Red, fontWeight=FontWeight.Bold)
             Text("Live Chat / Reports:", color=Color.Cyan, fontWeight=FontWeight.Bold)
             Text(if(liveChat.isBlank()) "No reports yet." else liveChat, color=Color.White)
-            Spacer(Modifier.height(10.dp))
-            Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){
-                Button(onClick={ firebasePut("liveControl","{\"action\":\"MUTE\"}"); toast("MUTE sent to Broadcaster") }, colors=ButtonDefaults.buttonColors(containerColor=Color.Yellow)){ Text("MUTE LIVE", color=Color.Black) }
-                Button(onClick={ firebasePut("liveControl","{\"action\":\"STOP\"}"); isLive=false; toast("STOPPED LIVE") }, colors=ButtonDefaults.buttonColors(containerColor=Color.Red)){ Text("STOP LIVE") }
-            }
+            Spacer(Modifier.height(10.dp)); TypingBox()
+            Row(horizontalArrangement=Arrangement.spacedBy(6.dp)){ Button(onClick={ firebasePut("liveControl","{\"action\":\"MUTE\"}"); toast("MUTE sent") }, colors=ButtonDefaults.buttonColors(containerColor=Color.Yellow)){ Text("MUTE LIVE", color=Color.Black) }; Button(onClick={ firebasePut("liveControl","{\"action\":\"STOP\"}"); isLive=false; toast("STOPPED LIVE") }, colors=ButtonDefaults.buttonColors(containerColor=Color.Red)){ Text("STOP LIVE") } }
             Button(onClick={ refreshSubs(); toast("Refreshed") }, Modifier.fillMaxWidth()){ Text("REFRESH MONITOR") }
             Button(onClick={screen="DASH"}, Modifier.fillMaxWidth()){ Text("BACK") }
         }
     }
     if(screen=="PAY"){
         Column(Modifier.fillMaxSize().background(Color.Black).padding(16.dp).verticalScroll(rememberScrollState())){
-            Text("PAYMENTS - AUTO DETECT", color=Color.Yellow, fontSize=22.sp, fontWeight=FontWeight.Bold)
-            Text("Paybill: $PAYBILL\nAccount: $ACCOUNT\nSTK Push via M-PESA Business App\n\nWhen user pays, they send Receipt Code. Admin verifies Receipt + M-PESA SMS, then app AUTO sets Expiry by Premium Days and AUTO locks after expiry.", color=Color.White, fontSize=13.sp)
-            Text("MONEY OFFER / PROMO:", color=Color.Cyan, fontWeight=FontWeight.Bold)
-            OutlinedTextField(value=inboxMsg, onValueChange={inboxMsg=it}, label={Text("e.g. 50% OFF Monthly this week!")}, modifier=Modifier.fillMaxWidth(), minLines=2)
-            Button(onClick={ if(inboxMsg.isNotBlank()){ firebasePut("offer", JSONObject.quote(inboxMsg)); toast("Offer sent to Broadcasters!"); inboxMsg="" } }, Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=Color.Green)){ Text("SEND MONEY OFFER TO ALL") }
+            Text("PAYMENTS", color=Color.Yellow, fontSize=22.sp, fontWeight=FontWeight.Bold)
+            Text("Paybill: $PAYBILL\nAccount: $ACCOUNT\nSTK Push via M-PESA Business App", color=Color.White, fontSize=13.sp)
+            VisibleField(value=inboxMsg, onChange={inboxMsg=it}, label="e.g. 50% OFF Monthly this week!", modifier=Modifier.fillMaxWidth(), minLines=2)
+            Button(onClick={ if(inboxMsg.isNotBlank()){ firebasePut("offer", JSONObject.quote(inboxMsg)); toast("Offer sent!"); inboxMsg="" } }, Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=Color.Green)){ Text("SEND MONEY OFFER TO ALL") }
             Button(onClick={screen="DASH"}, Modifier.fillMaxWidth()){ Text("BACK") }
         }
     }
